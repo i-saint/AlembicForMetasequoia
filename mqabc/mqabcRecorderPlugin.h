@@ -1,12 +1,12 @@
 ﻿#pragma once
 
-class mqabcSettingsDlg;
+class mqabcRecorderWindow;
 
-class mqabcPlugin : public MQStationPlugin
+class mqabcRecorderPlugin : public MQStationPlugin
 {
 public:
-    mqabcPlugin();
-    virtual ~mqabcPlugin();
+    mqabcRecorderPlugin();
+    virtual ~mqabcRecorderPlugin();
 
 #if defined(__APPLE__) || defined(__linux__)
     // Create a new plugin class for another document.
@@ -72,7 +72,7 @@ public:
     void OnUpdateScene(MQDocument doc, MQScene scene) override;
 
 
-    typedef bool (mqabcPlugin::*ExecuteCallbackProc)(MQDocument doc);
+    typedef bool (mqabcRecorderPlugin::*ExecuteCallbackProc)(MQDocument doc);
 
     void Execute(ExecuteCallbackProc proc);
 
@@ -84,7 +84,7 @@ public:
     bool ExecuteCallback(MQDocument doc, void *option) override;
 
 
-    void SetPath(const std::string& v);
+    bool OpenABC(const std::string& v);
     void SetInterval(float v);
     float GetInterval() const;
 
@@ -93,7 +93,7 @@ public:
     void Flush();
 
 private:
-    mqabcSettingsDlg *m_dlg_settings = nullptr;
+    mqabcRecorderWindow* m_window = nullptr;
     bool m_dirty = false;
 
     std::string m_abc_path;

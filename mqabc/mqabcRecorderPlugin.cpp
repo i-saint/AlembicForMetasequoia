@@ -1,28 +1,28 @@
 ﻿#include "pch.h"
 #include "mqabc.h"
-#include "mqabcPlugin.h"
-#include "mqabcUI.h"
+#include "mqabcRecorderPlugin.h"
+#include "mqabcRecorderWindow.h"
 
-static mqabcPlugin g_plugin;
+static mqabcRecorderPlugin g_plugin;
 
 // Constructor
 // コンストラクタ
-mqabcPlugin::mqabcPlugin()
+mqabcRecorderPlugin::mqabcRecorderPlugin()
 {
 }
 
 // Destructor
 // デストラクタ
-mqabcPlugin::~mqabcPlugin()
+mqabcRecorderPlugin::~mqabcRecorderPlugin()
 {
 }
 
 #if defined(__APPLE__) || defined(__linux__)
 // Create a new plugin class for another document.
 // 別のドキュメントのための新しいプラグインクラスを作成する。
-MQBasePlugin* mqabcPlugin::CreateNewPlugin()
+MQBasePlugin* mqabcRecorderPlugin::CreateNewPlugin()
 {
-    return new mqabcPlugin();
+    return new mqabcRecorderPlugin();
 }
 #endif
 
@@ -31,7 +31,7 @@ MQBasePlugin* mqabcPlugin::CreateNewPlugin()
 //    プラグインIDを返す。
 //    この関数は起動時に呼び出される。
 //---------------------------------------------------------------------------
-void mqabcPlugin::GetPlugInID(DWORD *Product, DWORD *ID)
+void mqabcRecorderPlugin::GetPlugInID(DWORD *Product, DWORD *ID)
 {
     // プロダクト名(制作者名)とIDを、全部で64bitの値として返す
     // 値は他と重複しないようなランダムなもので良い
@@ -44,7 +44,7 @@ void mqabcPlugin::GetPlugInID(DWORD *Product, DWORD *ID)
 //    プラグイン名を返す。
 //    この関数は[プラグインについて]表示時に呼び出される。
 //---------------------------------------------------------------------------
-const char *mqabcPlugin::GetPlugInName(void)
+const char *mqabcRecorderPlugin::GetPlugInName(void)
 {
     return "Alembic For Metasequoia (version " mqabcVersionString ")  Copyright(C) 2020, i-saint";
 }
@@ -55,12 +55,12 @@ const char *mqabcPlugin::GetPlugInName(void)
 //    この関数は起動時に呼び出される。
 //---------------------------------------------------------------------------
 #if MQPLUGIN_VERSION >= 0x0470
-const wchar_t *mqabcPlugin::EnumString(void)
+const wchar_t *mqabcRecorderPlugin::EnumString(void)
 {
     return L"Alembic For Metasequoia";
 }
 #else
-const char *mqabcPlugin::EnumString(void)
+const char *mqabcRecorderPlugin::EnumString(void)
 {
     return "Alembic For Metasequoia";
 }
@@ -72,7 +72,7 @@ const char *mqabcPlugin::EnumString(void)
 //  EnumSubCommand
 //    サブコマンド前を列挙
 //---------------------------------------------------------------------------
-const char *mqabcPlugin::EnumSubCommand(int index)
+const char *mqabcRecorderPlugin::EnumSubCommand(int index)
 {
     return NULL;
 }
@@ -81,7 +81,7 @@ const char *mqabcPlugin::EnumSubCommand(int index)
 //  GetSubCommandString
 //    サブコマンドの文字列を列挙
 //---------------------------------------------------------------------------
-const wchar_t *mqabcPlugin::GetSubCommandString(int index)
+const wchar_t *mqabcRecorderPlugin::GetSubCommandString(int index)
 {
     return NULL;
 }
@@ -90,11 +90,11 @@ const wchar_t *mqabcPlugin::GetSubCommandString(int index)
 //  Initialize
 //    アプリケーションの初期化
 //---------------------------------------------------------------------------
-BOOL mqabcPlugin::Initialize()
+BOOL mqabcRecorderPlugin::Initialize()
 {
-    if (!m_dlg_settings) {
+    if (!m_window) {
         auto parent = MQWindow::GetMainWindow();
-        m_dlg_settings = new mqabcSettingsDlg(this, parent);
+        m_window = new mqabcRecorderWindow(this, parent);
     }
     return TRUE;
 }
@@ -103,11 +103,11 @@ BOOL mqabcPlugin::Initialize()
 //  Exit
 //    アプリケーションの終了
 //---------------------------------------------------------------------------
-void mqabcPlugin::Exit()
+void mqabcRecorderPlugin::Exit()
 {
-    if (m_dlg_settings) {
-        delete m_dlg_settings;
-        m_dlg_settings = nullptr;
+    if (m_window) {
+        delete m_window;
+        m_window = nullptr;
     }
 }
 
@@ -115,14 +115,14 @@ void mqabcPlugin::Exit()
 //  Activate
 //    表示・非表示切り替え要求
 //---------------------------------------------------------------------------
-BOOL mqabcPlugin::Activate(MQDocument doc, BOOL flag)
+BOOL mqabcRecorderPlugin::Activate(MQDocument doc, BOOL flag)
 {
-    if (!m_dlg_settings) {
+    if (!m_window) {
         return FALSE;
     }
 
     bool active = flag ? true : false;
-    m_dlg_settings->SetVisible(active);
+    m_window->SetVisible(active);
     return active;
 }
 
@@ -130,19 +130,19 @@ BOOL mqabcPlugin::Activate(MQDocument doc, BOOL flag)
 //  IsActivated
 //    表示・非表示状態の返答
 //---------------------------------------------------------------------------
-BOOL mqabcPlugin::IsActivated(MQDocument doc)
+BOOL mqabcRecorderPlugin::IsActivated(MQDocument doc)
 {
-    if (!m_dlg_settings) {
+    if (!m_window) {
         return FALSE;
     }
-    return m_dlg_settings->GetVisible();
+    return m_window->GetVisible();
 }
 
 //---------------------------------------------------------------------------
 //  OnMinimize
 //    ウインドウの最小化への返答
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnMinimize(MQDocument doc, BOOL flag)
+void mqabcRecorderPlugin::OnMinimize(MQDocument doc, BOOL flag)
 {
 }
 
@@ -150,7 +150,7 @@ void mqabcPlugin::OnMinimize(MQDocument doc, BOOL flag)
 //  OnReceiveUserMessage
 //    プラグイン独自のメッセージの受け取り
 //---------------------------------------------------------------------------
-int mqabcPlugin::OnReceiveUserMessage(MQDocument doc, DWORD src_product, DWORD src_id, const char *description, void *message)
+int mqabcRecorderPlugin::OnReceiveUserMessage(MQDocument doc, DWORD src_product, DWORD src_id, const char *description, void *message)
 {
     return 0;
 }
@@ -160,7 +160,7 @@ int mqabcPlugin::OnReceiveUserMessage(MQDocument doc, DWORD src_product, DWORD s
 //    A message for calling a sub comand
 //    サブコマンドの呼び出し
 //---------------------------------------------------------------------------
-BOOL mqabcPlugin::OnSubCommand(MQDocument doc, int index)
+BOOL mqabcRecorderPlugin::OnSubCommand(MQDocument doc, int index)
 {
     return FALSE;
 }
@@ -169,7 +169,7 @@ BOOL mqabcPlugin::OnSubCommand(MQDocument doc, int index)
 //  OnDraw
 //    描画時の処理
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnDraw(MQDocument doc, MQScene scene, int width, int height)
+void mqabcRecorderPlugin::OnDraw(MQDocument doc, MQScene scene, int width, int height)
 {
     Flush();
 }
@@ -179,7 +179,7 @@ void mqabcPlugin::OnDraw(MQDocument doc, MQScene scene, int width, int height)
 //  OnNewDocument
 //    ドキュメント初期化時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnNewDocument(MQDocument doc, const char *filename, NEW_DOCUMENT_PARAM& param)
+void mqabcRecorderPlugin::OnNewDocument(MQDocument doc, const char *filename, NEW_DOCUMENT_PARAM& param)
 {
     MarkSceneDirty();
 }
@@ -188,7 +188,7 @@ void mqabcPlugin::OnNewDocument(MQDocument doc, const char *filename, NEW_DOCUME
 //  OnEndDocument
 //    ドキュメント終了時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnEndDocument(MQDocument doc)
+void mqabcRecorderPlugin::OnEndDocument(MQDocument doc)
 {
     Flush();
 }
@@ -197,7 +197,7 @@ void mqabcPlugin::OnEndDocument(MQDocument doc)
 //  OnSaveDocument
 //    ドキュメント保存時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnSaveDocument(MQDocument doc, const char *filename, SAVE_DOCUMENT_PARAM& param)
+void mqabcRecorderPlugin::OnSaveDocument(MQDocument doc, const char *filename, SAVE_DOCUMENT_PARAM& param)
 {
 }
 
@@ -205,9 +205,9 @@ void mqabcPlugin::OnSaveDocument(MQDocument doc, const char *filename, SAVE_DOCU
 //  OnUndo
 //    アンドゥ実行時
 //---------------------------------------------------------------------------
-BOOL mqabcPlugin::OnUndo(MQDocument doc, int undo_state)
+BOOL mqabcRecorderPlugin::OnUndo(MQDocument doc, int undo_state)
 {
-    m_dirty = true;
+    MarkSceneDirty();
     return TRUE;
 }
 
@@ -215,7 +215,7 @@ BOOL mqabcPlugin::OnUndo(MQDocument doc, int undo_state)
 //  OnRedo
 //    リドゥ実行時
 //---------------------------------------------------------------------------
-BOOL mqabcPlugin::OnRedo(MQDocument doc, int redo_state)
+BOOL mqabcRecorderPlugin::OnRedo(MQDocument doc, int redo_state)
 {
     MarkSceneDirty();
     return TRUE;
@@ -225,7 +225,7 @@ BOOL mqabcPlugin::OnRedo(MQDocument doc, int redo_state)
 //  OnUpdateUndo
 //    アンドゥ状態更新時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnUpdateUndo(MQDocument doc, int undo_state, int undo_size)
+void mqabcRecorderPlugin::OnUpdateUndo(MQDocument doc, int undo_state, int undo_size)
 {
     MarkSceneDirty();
 }
@@ -234,7 +234,7 @@ void mqabcPlugin::OnUpdateUndo(MQDocument doc, int undo_state, int undo_size)
 //  OnObjectModified
 //    オブジェクトの編集時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnObjectModified(MQDocument doc)
+void mqabcRecorderPlugin::OnObjectModified(MQDocument doc)
 {
 }
 
@@ -242,7 +242,7 @@ void mqabcPlugin::OnObjectModified(MQDocument doc)
 //  OnObjectSelected
 //    オブジェクトの選択状態の変更時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnObjectSelected(MQDocument doc)
+void mqabcRecorderPlugin::OnObjectSelected(MQDocument doc)
 {
 }
 
@@ -250,7 +250,7 @@ void mqabcPlugin::OnObjectSelected(MQDocument doc)
 //  OnUpdateObjectList
 //    カレントオブジェクトの変更時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnUpdateObjectList(MQDocument doc)
+void mqabcRecorderPlugin::OnUpdateObjectList(MQDocument doc)
 {
 }
 
@@ -258,7 +258,7 @@ void mqabcPlugin::OnUpdateObjectList(MQDocument doc)
 //  OnMaterialModified
 //    マテリアルのパラメータ変更時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnMaterialModified(MQDocument doc)
+void mqabcRecorderPlugin::OnMaterialModified(MQDocument doc)
 {
 }
 
@@ -266,7 +266,7 @@ void mqabcPlugin::OnMaterialModified(MQDocument doc)
 //  OnUpdateMaterialList
 //    カレントマテリアルの変更時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnUpdateMaterialList(MQDocument doc)
+void mqabcRecorderPlugin::OnUpdateMaterialList(MQDocument doc)
 {
 }
 
@@ -274,7 +274,7 @@ void mqabcPlugin::OnUpdateMaterialList(MQDocument doc)
 //  OnUpdateScene
 //    シーン情報の変更時
 //---------------------------------------------------------------------------
-void mqabcPlugin::OnUpdateScene(MQDocument doc, MQScene scene)
+void mqabcRecorderPlugin::OnUpdateScene(MQDocument doc, MQScene scene)
 {
 }
 
@@ -282,14 +282,14 @@ void mqabcPlugin::OnUpdateScene(MQDocument doc, MQScene scene)
 //  ExecuteCallback
 //    コールバックに対する実装部
 //---------------------------------------------------------------------------
-bool mqabcPlugin::ExecuteCallback(MQDocument doc, void *option)
+bool mqabcRecorderPlugin::ExecuteCallback(MQDocument doc, void *option)
 {
     CallbackInfo *info = (CallbackInfo*)option;
     return ((*this).*info->proc)(doc);
 }
 
 // コールバックの呼び出し
-void mqabcPlugin::Execute(ExecuteCallbackProc proc)
+void mqabcRecorderPlugin::Execute(ExecuteCallbackProc proc)
 {
     CallbackInfo info;
     info.proc = proc;
@@ -297,22 +297,30 @@ void mqabcPlugin::Execute(ExecuteCallbackProc proc)
 }
 
 
-void mqabcPlugin::SetPath(const std::string& v) { m_abc_path = v; }
-void mqabcPlugin::SetInterval(float v) { m_interval = mu::S2NS(v); }
-float mqabcPlugin::GetInterval() const { return mu::NS2S(m_interval); }
-
-void mqabcPlugin::LogInfo(const char *message)
+bool mqabcRecorderPlugin::OpenABC(const std::string& v)
 {
-    if (m_dlg_settings)
-        m_dlg_settings->LogInfo(message);
+    m_abc_path = v;
+
+    // todo
+
+    return true;
 }
 
-void mqabcPlugin::MarkSceneDirty()
+void mqabcRecorderPlugin::SetInterval(float v) { m_interval = mu::S2NS(v); }
+float mqabcRecorderPlugin::GetInterval() const { return mu::NS2S(m_interval); }
+
+void mqabcRecorderPlugin::LogInfo(const char *message)
+{
+    if (m_window)
+        m_window->LogInfo(message);
+}
+
+void mqabcRecorderPlugin::MarkSceneDirty()
 {
     m_dirty = true;
 }
 
-void mqabcPlugin::Flush()
+void mqabcRecorderPlugin::Flush()
 {
     if (!m_dirty)
         return;

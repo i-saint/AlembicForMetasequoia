@@ -13,3 +13,9 @@
 #endif
 
 #include "MeshUtils/MeshUtils.h"
+using mu::float2;
+using mu::float3;
+using mu::float4;
+using mu::float2x2;
+using mu::float3x3;
+using mu::float4x4;
