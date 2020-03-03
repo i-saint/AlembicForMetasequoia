@@ -35,8 +35,8 @@ void mqabcRecorderPlugin::GetPlugInID(DWORD *Product, DWORD *ID)
 {
     // プロダクト名(制作者名)とIDを、全部で64bitの値として返す
     // 値は他と重複しないようなランダムなもので良い
-    *Product = MQPluginProduct;
-    *ID = MQPluginID;
+    *Product = mqabcPluginProduct;
+    *ID = mqabcRecorderPluginID;
 }
 
 //---------------------------------------------------------------------------
@@ -109,6 +109,7 @@ void mqabcRecorderPlugin::Exit()
         delete m_window;
         m_window = nullptr;
     }
+    CloseABC();
 }
 
 //---------------------------------------------------------------------------
@@ -190,7 +191,7 @@ void mqabcRecorderPlugin::OnNewDocument(MQDocument doc, const char *filename, NE
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnEndDocument(MQDocument doc)
 {
-    Flush();
+    CloseABC();
 }
 
 //---------------------------------------------------------------------------
@@ -297,12 +298,38 @@ void mqabcRecorderPlugin::Execute(ExecuteCallbackProc proc)
 }
 
 
-bool mqabcRecorderPlugin::OpenABC(const std::string& v)
+bool mqabcRecorderPlugin::OpenABC(const std::string& path)
 {
-    m_abc_path = v;
+    try
+    {
+        m_archive = Abc::OArchive(Alembic::AbcCoreOgawa::WriteArchive(), path);
+        m_abc_path = path;
+    }
+    catch (Alembic::Util::Exception e)
+    {
+        //LogInfo("Failed (%s)", e.what());
+        return false;
+    }
 
-    // todo
+    // add dummy time sampling
+    auto ts = Abc::TimeSampling(Abc::chrono_t(1.0f / 30.0f), Abc::chrono_t(0.0));
+    auto tsi = m_archive.addTimeSampling(ts);
+    m_root_node.reset(new AbcGeom::OObject(m_archive, AbcGeom::kTop, tsi));
 
+    return true;
+}
+
+bool mqabcRecorderPlugin::CloseABC()
+{
+    if (!m_archive)
+        return false;
+
+    Flush();
+
+    m_mesh_node.reset();
+    m_xform_node.reset();
+    m_root_node.reset();
+    m_archive.reset(); // flush archive
     return true;
 }
 

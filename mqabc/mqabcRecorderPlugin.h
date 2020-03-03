@@ -85,6 +85,8 @@ public:
 
 
     bool OpenABC(const std::string& v);
+    bool CloseABC();
+
     void SetInterval(float v);
     float GetInterval() const;
 
@@ -99,4 +101,10 @@ private:
     std::string m_abc_path;
     mu::nanosec m_last_flush = 0;
     mu::nanosec m_interval = 5000000000; // 5 sec
+
+    Abc::OArchive m_archive;
+    std::shared_ptr<Abc::OObject> m_root_node;
+    std::shared_ptr<AbcGeom::OXform> m_xform_node;
+    std::shared_ptr<AbcGeom::OPolyMesh> m_mesh_node;
+    RawVector<abcChrono> m_timeline;
 };

@@ -15,10 +15,13 @@
     <ClInclude Include="mqabc\mqabc.h">
       <Filter>mqabc</Filter>
     </ClInclude>
-    <ClInclude Include="mqabc\mqabcPlugin.h">
+    <ClInclude Include="mqabc\mqabcMesh.h">
       <Filter>mqabc</Filter>
     </ClInclude>
-    <ClInclude Include="mqabc\mqabcUI.h">
+    <ClInclude Include="mqabc\mqabcRecorderPlugin.h">
+      <Filter>mqabc</Filter>
+    </ClInclude>
+    <ClInclude Include="mqabc\mqabcRecorderWindow.h">
       <Filter>mqabc</Filter>
     </ClInclude>
   </ItemGroup>
@@ -29,10 +32,13 @@
     <ClCompile Include="mqabc\mqabc.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
-    <ClCompile Include="mqabc\mqabcPlugin.cpp">
+    <ClCompile Include="mqabc\mqabcMesh.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
-    <ClCompile Include="mqabc\mqabcUI.cpp">
+    <ClCompile Include="mqabc\mqabcRecorderPlugin.cpp">
+      <Filter>mqabc</Filter>
+    </ClCompile>
+    <ClCompile Include="mqabc\mqabcRecorderWindow.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
   </ItemGroup>

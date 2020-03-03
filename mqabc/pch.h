@@ -28,5 +28,10 @@
 #include <sstream>
 #include <thread>
 
+#include <Alembic/AbcCoreAbstract/All.h>
+//#include <Alembic/AbcCoreHDF5/All.h>
+#include <Alembic/AbcCoreOgawa/All.h>
+#include <Alembic/Abc/ErrorHandler.h>
 #include <Alembic/AbcGeom/All.h>
+
 #include "mqsdk/sdk_Include.h"

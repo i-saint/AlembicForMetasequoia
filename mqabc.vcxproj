@@ -20,16 +20,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mqabc\mqabc.cpp" />
-    <ClCompile Include="mqabc\mqabcPlugin.cpp" />
-    <ClCompile Include="mqabc\mqabcUI.cpp" />
+    <ClCompile Include="mqabc\mqabcRecorderPlugin.cpp" />
+    <ClCompile Include="mqabc\mqabcRecorderWindow.cpp" />
+    <ClCompile Include="mqabc\mqabcMesh.cpp" />
     <ClCompile Include="mqabc\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mqabc\mqabc.h" />
-    <ClInclude Include="mqabc\mqabcPlugin.h" />
-    <ClInclude Include="mqabc\mqabcUI.h" />
+    <ClInclude Include="mqabc\mqabcRecorderPlugin.h" />
+    <ClInclude Include="mqabc\mqabcRecorderWindow.h" />
+    <ClInclude Include="mqabc\mqabcMesh.h" />
     <ClInclude Include="mqabc\pch.h" />
   </ItemGroup>
   <ItemGroup>
