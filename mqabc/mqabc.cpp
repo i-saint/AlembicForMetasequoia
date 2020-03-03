@@ -2,7 +2,8 @@
 #include "MeshUtils/MeshUtils.h"
 #include "mqabc.h"
 
-mqabcAPI const char* mqabcGetPluginVersion()
+MQBasePlugin* GetPluginClass()
 {
-    return mqabcVersionString;
+    // todo
+    return nullptr;
 }

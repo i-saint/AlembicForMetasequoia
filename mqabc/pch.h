@@ -4,6 +4,7 @@
     #define _CRT_SECURE_NO_WARNINGS
     #define NOMINMAX
     #define WIN32_LEAN_AND_MEAN
+    #define _WINDOWS
     #include <windows.h>
     #include <d3d11.h>
     #include <d3d11_4.h>
@@ -28,3 +29,4 @@
 #include <thread>
 
 #include <Alembic/AbcGeom/All.h>
+#include "mqsdk/sdk_Include.h"
