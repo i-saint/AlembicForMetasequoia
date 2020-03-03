@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Natvis Include="NatvisFile.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="mqabc">
+      <UniqueIdentifier>{d83e2cdf-c30e-4d27-9651-2f531b7a074f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mqabc\pch.h">
+      <Filter>mqabc</Filter>
+    </ClInclude>
+    <ClInclude Include="mqabc\mqabc.h">
+      <Filter>mqabc</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="mqabc\pch.cpp">
+      <Filter>mqabc</Filter>
+    </ClCompile>
+    <ClCompile Include="mqabc\mqabc.cpp">
+      <Filter>mqabc</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
