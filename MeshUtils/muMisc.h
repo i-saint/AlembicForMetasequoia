@@ -9,6 +9,8 @@ using nanosec = uint64_t;
 nanosec Now();
 inline float NS2MS(nanosec ns) { return (float)((double)ns / 1000000.0); }
 inline float NS2S(nanosec ns) { return (float)((double)ns / 1000000000.0); }
+inline nanosec MS2NS(float ms) { return (nanosec)((double)ms * 1000000.0); }
+inline nanosec S2NS(float s) { return (nanosec)((double)s * 1000000000.0); }
 
 void Print(const char *fmt, ...);
 void Print(const wchar_t *fmt, ...);

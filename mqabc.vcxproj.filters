@@ -15,12 +15,24 @@
     <ClInclude Include="mqabc\mqabc.h">
       <Filter>mqabc</Filter>
     </ClInclude>
+    <ClInclude Include="mqabc\mqabcPlugin.h">
+      <Filter>mqabc</Filter>
+    </ClInclude>
+    <ClInclude Include="mqabc\mqabcUI.h">
+      <Filter>mqabc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mqabc\pch.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
     <ClCompile Include="mqabc\mqabc.cpp">
+      <Filter>mqabc</Filter>
+    </ClCompile>
+    <ClCompile Include="mqabc\mqabcPlugin.cpp">
+      <Filter>mqabc</Filter>
+    </ClCompile>
+    <ClCompile Include="mqabc\mqabcUI.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
   </ItemGroup>
