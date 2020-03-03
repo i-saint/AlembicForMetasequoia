@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2026
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MeshUtils", "MeshUtils.vcxproj", "{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "setup", "setup.vcxproj", "{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}.Debug|x64.ActiveCfg = Debug|x64
+		{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}.Debug|x64.Build.0 = Debug|x64
+		{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}.Debug|x86.ActiveCfg = Debug|Win32
+		{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}.Debug|x86.Build.0 = Debug|Win32
+		{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}.Release|x64.ActiveCfg = Release|x64
+		{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}.Release|x64.Build.0 = Release|x64
+		{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}.Release|x86.ActiveCfg = Release|Win32
+		{FD3FE1FF-ABE5-40DB-B867-144E9DD9B23C}.Release|x86.Build.0 = Release|Win32
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Debug|x64.ActiveCfg = Release|x64
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Debug|x64.Build.0 = Release|x64
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Debug|x64.Deploy.0 = Release|x64
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Debug|x86.ActiveCfg = Release|x64
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Debug|x86.Build.0 = Release|x64
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Debug|x86.Deploy.0 = Release|x64
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Release|x64.ActiveCfg = Release|x64
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Release|x64.Build.0 = Release|x64
+		{1C5DE91B-7AE9-4304-9FA1-0DE1ABA8C02D}.Release|x86.ActiveCfg = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{11990C37-1C63-418F-9AB1-74076C470584} = {E793BFA6-ABE9-4CC1-8B24-8C1020B2AB9E}
+		{A7AC48A7-1BC7-4D9D-BADD-A88B4292A0A3} = {E793BFA6-ABE9-4CC1-8B24-8C1020B2AB9E}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AD5D498C-17E2-4E12-92D6-2AFE96005329}
+	EndGlobalSection
+EndGlobal
