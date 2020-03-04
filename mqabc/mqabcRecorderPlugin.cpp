@@ -46,7 +46,7 @@ void mqabcRecorderPlugin::GetPlugInID(DWORD *Product, DWORD *ID)
 //---------------------------------------------------------------------------
 const char *mqabcRecorderPlugin::GetPlugInName(void)
 {
-    return "Alembic For Metasequoia (version " mqabcVersionString ")  Copyright(C) 2020, i-saint";
+    return "Alembic Recorder (version " mqabcVersionString ")  Copyright(C) 2020, i-saint";
 }
 
 //---------------------------------------------------------------------------
@@ -57,12 +57,12 @@ const char *mqabcRecorderPlugin::GetPlugInName(void)
 #if MQPLUGIN_VERSION >= 0x0470
 const wchar_t *mqabcRecorderPlugin::EnumString(void)
 {
-    return L"Alembic For Metasequoia";
+    return L"Alembic Recorder";
 }
 #else
 const char *mqabcRecorderPlugin::EnumString(void)
 {
-    return "Alembic For Metasequoia";
+    return "Alembic Recorder";
 }
 #endif
 
@@ -326,10 +326,14 @@ bool mqabcRecorderPlugin::CloseABC()
 
     Flush();
 
+    if (m_task_write.valid())
+        m_task_write.wait();
+
     m_mesh_node.reset();
     m_xform_node.reset();
     m_root_node.reset();
     m_archive.reset(); // flush archive
+
     return true;
 }
 
@@ -359,7 +363,96 @@ void mqabcRecorderPlugin::Flush()
     m_dirty = false;
     m_last_flush = t;
 
-    // todo
+    if (m_task_write.valid())
+        m_task_write.wait();
+}
+
+void mqabcRecorderPlugin::Write(MQDocument doc, void* arg)
+{
+    int nobjects = doc->GetObjectCount();
+    int npoints = 0;
+    int nindices = 0;
+    int nfaces = 0;
+
+    // count elements and offsets
+    m_obj_records.resize(nobjects);
+    for (int oi = 0; oi < nobjects; ++oi) {
+        auto obj = doc->GetObject(oi);
+        auto& rec = m_obj_records[oi];
+
+        rec.vertex_offset = npoints;
+        rec.vertex_count = obj->GetVertexCount();
+        npoints += rec.vertex_count;
+
+        rec.face_offset += nfaces;
+        rec.face_count += obj->GetFaceCount();
+        nfaces += rec.face_count;
+
+        int index_count = 0;
+        for (int fi = 0; fi < nfaces; ++fi)
+            index_count += obj->GetFacePointCount(fi);
+
+        rec.index_offset = nindices;
+        rec.index_count = index_count;
+        nindices += rec.index_count;
+    }
+
+    m_mesh.resize(npoints, nindices, nfaces);
+    for (int oi = 0; oi < nobjects; ++oi) {
+        auto obj = doc->GetObject(oi);
+        auto& rec = m_obj_records[oi];
+        ExtractMeshData(doc, obj, rec, m_mesh);
+    }
+}
+
+void mqabcRecorderPlugin::ExtractMeshData(MQDocument doc, MQObject obj, ObjectRecord rec, mqabcMesh& dst)
+{
+    auto dst_points = dst.points.data() + rec.vertex_offset;
+    auto dst_normals = dst.normals.data() + rec.index_offset;
+    auto dst_uv = dst.uv.data() + rec.index_offset;
+    auto dst_colors = dst.colors.data() + rec.index_offset;
+    auto dst_mids = dst.material_ids.data() + rec.face_offset;
+    auto dst_counts = dst.counts.data() + rec.face_offset;
+    auto dst_indices = dst.indices.data() + rec.index_offset;
+
+    // vertices
+    int npoints = obj->GetVertexCount();
+    obj->GetVertexArray((MQPoint*)dst_points);
+
+    // faces
+    int nfaces = obj->GetFaceCount();
+    int nindices = 0;
+    for (int fi = 0; fi < nfaces; ++fi) {
+        int count = obj->GetFacePointCount(fi);
+        dst_counts[fi] = count;
+        nindices += count;
+    }
+
+    // indices, uv, material ID, vertex color
+    for (int fi = 0; fi < nfaces; ++fi) {
+        dst_mids[fi] = obj->GetFaceMaterial(fi);
+
+        int count = dst_counts[fi];
+        obj->GetFacePointArray(fi, dst_indices);
+        obj->GetFaceCoordinateArray(fi, (MQCoordinate*)dst_uv);
+        for (int ci = 0; ci < count; ++ci)
+            *(dst_colors++) = mu::Color32ToFloat4(obj->GetFaceVertexColor(fi, ci));
+
+        dst_indices += count;
+        dst_uv += count;
+    }
+
+    // normals
+#if MQPLUGIN_VERSION >= 0x0460
+    for (int fi = 0; fi < nfaces; ++fi) {
+        int count = dst_counts[fi];
+        BYTE flags;
+        for (int ci = 0; ci < count; ++ci)
+            obj->GetFaceVertexNormal(fi, ci, flags, (MQPoint&)*(dst_normals++));
+    }
+#else
+    // todo: calculate normals
+#endif
 }
 
 

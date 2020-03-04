@@ -27,6 +27,7 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <future>
 
 #include <Alembic/AbcCoreAbstract/All.h>
 //#include <Alembic/AbcCoreHDF5/All.h>

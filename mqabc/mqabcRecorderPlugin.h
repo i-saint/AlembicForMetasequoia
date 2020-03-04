@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "mqabcMesh.h"
 
 class mqabcRecorderWindow;
 
@@ -95,10 +96,26 @@ public:
     void Flush();
 
 private:
+    struct ObjectRecord
+    {
+        int vertex_count = 0;
+        int index_count = 0;
+        int face_count = 0;
+        int vertex_offset = 0;
+        int index_offset = 0;
+        int face_offset = 0;
+        std::string name;
+    };
+
+    void Write(MQDocument doc, void* arg);
+    void ExtractMeshData(MQDocument doc, MQObject obj, ObjectRecord rec, mqabcMesh& dst);
+
+private:
     mqabcRecorderWindow* m_window = nullptr;
     bool m_dirty = false;
 
     std::string m_abc_path;
+    mu::nanosec m_start_time = 0;
     mu::nanosec m_last_flush = 0;
     mu::nanosec m_interval = 5000000000; // 5 sec
 
@@ -107,4 +124,8 @@ private:
     std::shared_ptr<AbcGeom::OXform> m_xform_node;
     std::shared_ptr<AbcGeom::OPolyMesh> m_mesh_node;
     RawVector<abcChrono> m_timeline;
+
+    mqabcMesh m_mesh;
+    std::vector<ObjectRecord> m_obj_records;
+    std::future<void> m_task_write;
 };
