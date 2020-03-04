@@ -88,6 +88,9 @@ public:
     bool OpenABC(const std::string& v);
     bool CloseABC();
 
+    bool IsArchiveOpened() const;
+    bool IsRecording() const;
+    void EnableRecording(bool v);
     void SetInterval(double v);
     double GetInterval() const;
 
@@ -117,6 +120,7 @@ private:
 private:
     mqabcRecorderWindow* m_window = nullptr;
     bool m_dirty = false;
+    bool m_recording = false;
 
     std::string m_abc_path;
     mu::nanosec m_start_time = 0;
@@ -134,7 +138,7 @@ private:
     AbcGeom::ON3fGeomParam::Sample m_sample_normals;
     AbcGeom::OV2fGeomParam::Sample m_sample_uv;
     AbcGeom::OC4fGeomParam::Sample m_sample_colors;
-    RawVector<abcChrono> m_timeline;
+    std::vector<abcChrono> m_timeline;
 
     mqabcMesh m_mesh;
     std::vector<ObjectRecord> m_obj_records;

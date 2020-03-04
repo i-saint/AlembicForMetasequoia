@@ -320,6 +320,7 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
 
     auto props = m_mesh_node->getSchema().getArbGeomParams();
     m_colors_param = AbcGeom::OC4fGeomParam(props, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
+    m_recording = true;
 
     return true;
 }
@@ -332,6 +333,9 @@ bool mqabcRecorderPlugin::CloseABC()
     if (m_task_write.valid())
         m_task_write.wait();
 
+    auto ts = Abc::TimeSampling(Abc::TimeSamplingType(Abc::TimeSamplingType::kAcyclic), m_timeline);
+    *m_archive.getTimeSampling(1) = ts;
+
     m_colors_param.reset();
     m_mesh_node.reset();
     m_xform_node.reset();
@@ -340,12 +344,34 @@ bool mqabcRecorderPlugin::CloseABC()
 
     m_start_time = m_last_flush = 0;
     m_timeline.clear();
+    m_abc_path.clear();
+    m_recording = false;
 
     return true;
 }
 
-void mqabcRecorderPlugin::SetInterval(double v) { m_interval = mu::S2NS(v); }
-double mqabcRecorderPlugin::GetInterval() const { return mu::NS2Sd(m_interval); }
+bool mqabcRecorderPlugin::IsArchiveOpened() const
+{
+    return m_archive;
+}
+
+bool mqabcRecorderPlugin::IsRecording() const
+{
+    return m_recording && m_archive;
+}
+void mqabcRecorderPlugin::EnableRecording(bool v)
+{
+    m_recording = v;
+}
+
+void mqabcRecorderPlugin::SetInterval(double v)
+{
+    m_interval = mu::S2NS(v);
+}
+double mqabcRecorderPlugin::GetInterval() const
+{
+    return mu::NS2Sd(m_interval);
+}
 
 void mqabcRecorderPlugin::LogInfo(const char *message)
 {
@@ -360,7 +386,7 @@ void mqabcRecorderPlugin::MarkSceneDirty()
 
 void mqabcRecorderPlugin::Flush()
 {
-    if (!m_archive || !m_dirty)
+    if (!IsRecording() || !m_dirty)
         return;
 
     auto t = mu::Now();
@@ -418,8 +444,7 @@ bool mqabcRecorderPlugin::Write(MQDocument doc)
     });
 
     // flush abc
-    auto timestamp = m_last_flush - m_start_time;
-    auto abctime = mu::NS2Sd(timestamp);
+    auto abctime = mu::NS2Sd(m_last_flush - m_start_time);
     m_task_write = std::async(std::launch::async, [this, abctime]() { FlushABC(m_mesh, abctime); });
 
     return true;
@@ -441,11 +466,11 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord rec, mqabcMesh& dst)
 
     int nfaces = rec.face_count;
     for (int fi = 0; fi < nfaces; ++fi) {
-        // count
+        // counts
         int count = obj->GetFacePointCount(fi);
         dst_counts[fi] = count;
 
-        // material ID
+        // material IDs
         dst_mids[fi] = obj->GetFaceMaterial(fi);
 
         // indices
