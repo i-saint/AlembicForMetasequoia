@@ -24,9 +24,7 @@
 #include <map>
 #include <functional>
 #include <memory>
-#include <iostream>
-#include <sstream>
-#include <thread>
+#include <fstream>
 #include <future>
 
 #include <Alembic/AbcCoreAbstract/All.h>

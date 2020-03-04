@@ -1,13 +1,13 @@
 ﻿#pragma once
 #include "mqabcMesh.h"
 
-class mqabcRecorderWindow;
+class mqabcPlayerWindow;
 
-class mqabcRecorderPlugin : public MQStationPlugin
+class mqabcPlayerPlugin : public MQStationPlugin
 {
 public:
-    mqabcRecorderPlugin();
-    virtual ~mqabcRecorderPlugin();
+    mqabcPlayerPlugin();
+    virtual ~mqabcPlayerPlugin();
 
 #if defined(__APPLE__) || defined(__linux__)
     // Create a new plugin class for another document.
@@ -73,7 +73,7 @@ public:
     void OnUpdateScene(MQDocument doc, MQScene scene) override;
 
 
-    typedef bool (mqabcRecorderPlugin::*ExecuteCallbackProc)(MQDocument doc);
+    typedef bool (mqabcPlayerPlugin::*ExecuteCallbackProc)(MQDocument doc);
 
     void Execute(ExecuteCallbackProc proc);
 
@@ -89,58 +89,17 @@ public:
     bool CloseABC();
 
     bool IsArchiveOpened() const;
-    bool IsRecording() const;
-    void EnableRecording(bool v);
-    void SetInterval(double v);
-    double GetInterval() const;
 
     void LogInfo(const char *message);
-    void MarkSceneDirty();
-    void Flush();
 
 private:
-    struct ObjectRecord
-    {
-        int vertex_count = 0;
-        int index_count = 0;
-        int face_count = 0;
-        int vertex_offset = 0;
-        int index_offset = 0;
-        int face_offset = 0;
-        std::string name;
-
-        MQDocument mqdocument;
-        MQObject mqobject;
-    };
-
-    bool CaptureFrame(MQDocument doc);
-    void ExtractMeshData(ObjectRecord rec, mqabcMesh& dst);
-    void FlushABC(const mqabcMesh& data, abcChrono t);
-
-private:
-    mqabcRecorderWindow* m_window = nullptr;
-    bool m_dirty = false;
-    bool m_recording = false;
+    mqabcPlayerWindow* m_window = nullptr;
 
     std::string m_abc_path;
-    mu::nanosec m_start_time = 0;
-    mu::nanosec m_last_flush = 0;
-    mu::nanosec m_interval = 10000000000; // 10 sec
+    std::fstream m_stream;
+    Abc::IArchive m_archive;
 
-    Abc::OArchive m_archive;
-    std::shared_ptr<Abc::OObject> m_root_node;
-    std::shared_ptr<AbcGeom::OXform> m_xform_node;
-    std::shared_ptr<AbcGeom::OPolyMesh> m_mesh_node;
-
-    AbcGeom::XformSample m_xform_sample;
-    AbcGeom::OC4fGeomParam m_colors_param;
-    AbcGeom::OPolyMeshSchema::Sample m_mesh_sample;
-    AbcGeom::ON3fGeomParam::Sample m_sample_normals;
-    AbcGeom::OV2fGeomParam::Sample m_sample_uv;
-    AbcGeom::OC4fGeomParam::Sample m_sample_colors;
-    std::vector<abcChrono> m_timeline;
-
-    mqabcMesh m_mesh;
-    std::vector<ObjectRecord> m_obj_records;
-    std::future<void> m_task_write;
+    abcChrono m_time_start = 0.0;
+    abcChrono m_time_end = 0.0;
+    abcChrono m_time = 0.0;
 };

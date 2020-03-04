@@ -2,6 +2,7 @@
 
 #define mqabcVersion        0.1.0
 #define mqabcVersionString  "0.1.0"
+#define mqabcCopyRight      "Copyright(C) 2020, i-saint"
 
 #define mqabcPluginProduct      0x493ADF11
 #define mqabcRecorderPluginID   0xB1CC9999

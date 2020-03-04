@@ -8,6 +8,7 @@ class mqabcRecorderWindow : public MQWindow
 public:
     mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBase& parent);
 
+    BOOL OnHide(MQWidgetBase* sender, MQDocument doc);
     BOOL OnIntervalChange(MQWidgetBase* sender, MQDocument doc);
     BOOL OnRecordingClicked(MQWidgetBase* sender, MQDocument doc);
 

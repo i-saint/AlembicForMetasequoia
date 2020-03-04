@@ -10,7 +10,7 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
 
     m_plugin = plugin;
 
-    SetTitle(L"Alembic For Metasequoia");
+    SetTitle(L"Alembic Recorder");
     SetOutSpace(0.4);
 
     double outer_margin = 0.2;
@@ -24,7 +24,7 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
         CreateLabel(vf, L"Capture Interval (second):");
         m_slider_interval = CreateSlider(vf);
         m_slider_interval->SetMin(0.0f);
-        m_slider_interval->SetMax(300.0f);
+        m_slider_interval->SetMax(180.0f);
         m_slider_interval->SetPosition(m_plugin->GetInterval());
         m_slider_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalChange);
     }
@@ -53,6 +53,14 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
 
         m_log = CreateLabel(vf, mu::ToWCS(""));
     }
+    this->AddHideEvent(this, &mqabcRecorderWindow::OnHide);
+}
+
+BOOL mqabcRecorderWindow::OnHide(MQWidgetBase* sender, MQDocument doc)
+{
+    m_plugin->CloseABC();
+    m_plugin->WindowClose();
+    return 0;
 }
 
 BOOL mqabcRecorderWindow::OnIntervalChange(MQWidgetBase* sender, MQDocument doc)

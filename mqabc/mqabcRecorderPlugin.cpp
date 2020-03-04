@@ -46,7 +46,7 @@ void mqabcRecorderPlugin::GetPlugInID(DWORD *Product, DWORD *ID)
 //---------------------------------------------------------------------------
 const char *mqabcRecorderPlugin::GetPlugInName(void)
 {
-    return "Alembic Recorder (version " mqabcVersionString ")  Copyright(C) 2020, i-saint";
+    return "Alembic Recorder (version " mqabcVersionString ") " mqabcCopyRight;
 }
 
 //---------------------------------------------------------------------------
@@ -398,10 +398,10 @@ void mqabcRecorderPlugin::Flush()
     if (m_start_time == 0)
         m_start_time = t;
 
-    Execute(&mqabcRecorderPlugin::Write);
+    Execute(&mqabcRecorderPlugin::CaptureFrame);
 }
 
-bool mqabcRecorderPlugin::Write(MQDocument doc)
+bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
 {
     if (m_task_write.valid())
         m_task_write.wait();
