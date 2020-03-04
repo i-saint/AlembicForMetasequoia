@@ -93,6 +93,10 @@ public:
     void EnableRecording(bool v);
     void SetInterval(double v);
     double GetInterval() const;
+    void SetScaleFactor(float v);
+    float GetScaleFactor();
+    void SetTimeScale(float v);
+    float GetTimeScale();
 
     void LogInfo(const char *message);
     void MarkSceneDirty();
@@ -126,6 +130,8 @@ private:
     mu::nanosec m_start_time = 0;
     mu::nanosec m_last_flush = 0;
     mu::nanosec m_interval = 10000000000; // 10 sec
+    float m_scale_factor = 0.05f;
+    float m_time_scale = 1.0f;
 
     Abc::OArchive m_archive;
     std::shared_ptr<Abc::OObject> m_root_node;

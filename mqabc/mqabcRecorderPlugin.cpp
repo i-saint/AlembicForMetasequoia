@@ -373,6 +373,24 @@ double mqabcRecorderPlugin::GetInterval() const
     return mu::NS2Sd(m_interval);
 }
 
+void mqabcRecorderPlugin::SetScaleFactor(float v)
+{
+    m_scale_factor = v;
+}
+float mqabcRecorderPlugin::GetScaleFactor()
+{
+    return m_scale_factor;
+}
+void mqabcRecorderPlugin::SetTimeScale(float v)
+{
+    m_time_scale = v;
+}
+float mqabcRecorderPlugin::GetTimeScale()
+{
+    return m_time_scale;
+}
+
+
 void mqabcRecorderPlugin::LogInfo(const char *message)
 {
     if (m_window)
@@ -463,6 +481,7 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord rec, mqabcMesh& dst)
 
     // points
     obj->GetVertexArray((MQPoint*)dst_points);
+    mu::Scale(dst_points, m_scale_factor, rec.vertex_count);
 
     int nfaces = rec.face_count;
     for (int fi = 0; fi < nfaces; ++fi) {
@@ -521,7 +540,7 @@ void mqabcRecorderPlugin::FlushABC(const mqabcMesh& data, abcChrono t)
 
     m_xform_node->getSchema().set(m_xform_sample);
 
-    m_timeline.push_back(t);
+    m_timeline.push_back(t * m_time_scale);
 }
 
 

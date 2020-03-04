@@ -13,6 +13,8 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
     SetTitle(L"Alembic Recorder");
     SetOutSpace(0.4);
 
+    const size_t buf_len = 128;
+    wchar_t buf[buf_len];
     double outer_margin = 0.2;
     double inner_margin = 0.1;
 
@@ -21,12 +23,31 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
         vf->SetOutSpace(outer_margin);
         vf->SetInSpace(inner_margin);
 
-        CreateLabel(vf, L"Capture Interval (second):");
-        m_slider_interval = CreateSlider(vf);
-        m_slider_interval->SetMin(0.0f);
-        m_slider_interval->SetMax(180.0f);
-        m_slider_interval->SetPosition(m_plugin->GetInterval());
-        m_slider_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalChange);
+        {
+            MQFrame* hf = CreateHorizontalFrame(vf);
+            CreateLabel(hf, L"Capture Interval (second):");
+
+            m_edit_interval = CreateEdit(hf);
+            m_edit_interval->SetNumeric(MQEdit::NUMERIC_DOUBLE);
+            swprintf(buf, buf_len, L"%.2lf", m_plugin->GetInterval());
+            m_edit_interval->SetText(buf);
+            m_edit_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalChange);
+
+            m_slider_interval = CreateSlider(vf);
+            m_slider_interval->SetMin(0.0f);
+            m_slider_interval->SetMax(180.0f);
+            m_slider_interval->SetPosition(m_plugin->GetInterval());
+            m_slider_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalSlide);
+        }
+        {
+            MQFrame* hf = CreateHorizontalFrame(vf);
+            CreateLabel(hf, L"Scale Factor");
+            m_edit_scale = CreateEdit(hf);
+            m_edit_scale->SetNumeric(MQEdit::NUMERIC_DOUBLE);
+            swprintf(buf, buf_len, L"%.3f", m_plugin->GetScaleFactor());
+            m_edit_scale->SetText(buf);
+            m_edit_scale->AddChangedEvent(this, &mqabcRecorderWindow::OnScaleChange);
+        }
     }
 
     {
@@ -65,7 +86,32 @@ BOOL mqabcRecorderWindow::OnHide(MQWidgetBase* sender, MQDocument doc)
 
 BOOL mqabcRecorderWindow::OnIntervalChange(MQWidgetBase* sender, MQDocument doc)
 {
-    m_plugin->SetInterval(m_slider_interval->GetPosition());
+    auto str = mu::ToMBS(m_edit_interval->GetText());
+    auto value = std::atof(str.c_str());
+    m_plugin->SetInterval(value);
+    m_slider_interval->SetPosition(value);
+    return 0;
+}
+
+BOOL mqabcRecorderWindow::OnIntervalSlide(MQWidgetBase* sender, MQDocument doc)
+{
+    double value = m_slider_interval->GetPosition();
+    m_plugin->SetInterval(value);
+
+    const size_t buf_len = 128;
+    wchar_t buf[buf_len];
+    swprintf(buf, buf_len, L"%.2lf", m_plugin->GetInterval());
+    m_edit_interval->SetText(buf);
+    return 0;
+}
+
+BOOL mqabcRecorderWindow::OnScaleChange(MQWidgetBase* sender, MQDocument doc)
+{
+    auto str = mu::ToMBS(m_edit_scale->GetText());
+    auto value = std::atof(str.c_str());
+    if (value != 0.0) {
+        m_plugin->SetScaleFactor((float)value);
+    }
     return 0;
 }
 
