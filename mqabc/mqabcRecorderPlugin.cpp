@@ -315,6 +315,11 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     auto ts = Abc::TimeSampling(Abc::chrono_t(1.0f / 30.0f), Abc::chrono_t(0.0));
     auto tsi = m_archive.addTimeSampling(ts);
     m_root_node.reset(new AbcGeom::OObject(m_archive, AbcGeom::kTop, tsi));
+    m_xform_node.reset(new AbcGeom::OXform(*m_root_node, std::string("mesh"), tsi));
+    m_mesh_node.reset(new AbcGeom::OPolyMesh(*m_xform_node, std::string("mesh"), tsi));
+
+    auto props = m_mesh_node->getSchema().getArbGeomParams();
+    m_colors_param = AbcGeom::OC4fGeomParam(props, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
 
     return true;
 }
@@ -324,21 +329,23 @@ bool mqabcRecorderPlugin::CloseABC()
     if (!m_archive)
         return false;
 
-    Flush();
-
     if (m_task_write.valid())
         m_task_write.wait();
 
+    m_colors_param.reset();
     m_mesh_node.reset();
     m_xform_node.reset();
     m_root_node.reset();
     m_archive.reset(); // flush archive
 
+    m_start_time = m_last_flush = 0;
+    m_timeline.clear();
+
     return true;
 }
 
-void mqabcRecorderPlugin::SetInterval(float v) { m_interval = mu::S2NS(v); }
-float mqabcRecorderPlugin::GetInterval() const { return mu::NS2S(m_interval); }
+void mqabcRecorderPlugin::SetInterval(double v) { m_interval = mu::S2NS(v); }
+double mqabcRecorderPlugin::GetInterval() const { return mu::NS2Sd(m_interval); }
 
 void mqabcRecorderPlugin::LogInfo(const char *message)
 {
@@ -353,7 +360,7 @@ void mqabcRecorderPlugin::MarkSceneDirty()
 
 void mqabcRecorderPlugin::Flush()
 {
-    if (!m_dirty)
+    if (!m_archive || !m_dirty)
         return;
 
     auto t = mu::Now();
@@ -362,23 +369,28 @@ void mqabcRecorderPlugin::Flush()
 
     m_dirty = false;
     m_last_flush = t;
+    if (m_start_time == 0)
+        m_start_time = t;
 
-    if (m_task_write.valid())
-        m_task_write.wait();
+    Execute(&mqabcRecorderPlugin::Write);
 }
 
-void mqabcRecorderPlugin::Write(MQDocument doc, void* arg)
+bool mqabcRecorderPlugin::Write(MQDocument doc)
 {
+    if (m_task_write.valid())
+        m_task_write.wait();
+
     int nobjects = doc->GetObjectCount();
-    int npoints = 0;
-    int nindices = 0;
-    int nfaces = 0;
+    int npoints = 0, nindices = 0, nfaces = 0;
 
     // count elements and offsets
     m_obj_records.resize(nobjects);
     for (int oi = 0; oi < nobjects; ++oi) {
         auto obj = doc->GetObject(oi);
         auto& rec = m_obj_records[oi];
+
+        rec.mqdocument = doc;
+        rec.mqobject = obj;
 
         rec.vertex_offset = npoints;
         rec.vertex_count = obj->GetVertexCount();
@@ -394,19 +406,28 @@ void mqabcRecorderPlugin::Write(MQDocument doc, void* arg)
 
         rec.index_offset = nindices;
         rec.index_count = index_count;
-        nindices += rec.index_count;
+        nindices += index_count;
     }
 
+    // reserve mesh data
     m_mesh.resize(npoints, nindices, nfaces);
-    for (int oi = 0; oi < nobjects; ++oi) {
-        auto obj = doc->GetObject(oi);
-        auto& rec = m_obj_records[oi];
-        ExtractMeshData(doc, obj, rec, m_mesh);
-    }
+
+    // do extract mesh data
+    mu::parallel_for(0, nobjects, [this](int oi) {
+        ExtractMeshData(m_obj_records[oi], m_mesh);
+    });
+
+    // flush abc
+    auto timestamp = m_last_flush - m_start_time;
+    auto abctime = mu::NS2Sd(timestamp);
+    m_task_write = std::async(std::launch::async, [this, abctime]() { FlushABC(m_mesh, abctime); });
+
+    return true;
 }
 
-void mqabcRecorderPlugin::ExtractMeshData(MQDocument doc, MQObject obj, ObjectRecord rec, mqabcMesh& dst)
+void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord rec, mqabcMesh& dst)
 {
+    auto obj = rec.mqobject;
     auto dst_points = dst.points.data() + rec.vertex_offset;
     auto dst_normals = dst.normals.data() + rec.index_offset;
     auto dst_uv = dst.uv.data() + rec.index_offset;
@@ -415,44 +436,67 @@ void mqabcRecorderPlugin::ExtractMeshData(MQDocument doc, MQObject obj, ObjectRe
     auto dst_counts = dst.counts.data() + rec.face_offset;
     auto dst_indices = dst.indices.data() + rec.index_offset;
 
-    // vertices
-    int npoints = obj->GetVertexCount();
+    // points
     obj->GetVertexArray((MQPoint*)dst_points);
 
-    // faces
-    int nfaces = obj->GetFaceCount();
-    int nindices = 0;
+    int nfaces = rec.face_count;
     for (int fi = 0; fi < nfaces; ++fi) {
+        // count
         int count = obj->GetFacePointCount(fi);
         dst_counts[fi] = count;
-        nindices += count;
-    }
 
-    // indices, uv, material ID, vertex color
-    for (int fi = 0; fi < nfaces; ++fi) {
+        // material ID
         dst_mids[fi] = obj->GetFaceMaterial(fi);
 
-        int count = dst_counts[fi];
+        // indices
         obj->GetFacePointArray(fi, dst_indices);
+        dst_indices += count;
+
+        // uv
         obj->GetFaceCoordinateArray(fi, (MQCoordinate*)dst_uv);
-        for (int ci = 0; ci < count; ++ci)
+        dst_uv += count;
+
+        for (int ci = 0; ci < count; ++ci) {
+            // vertex color
             *(dst_colors++) = mu::Color32ToFloat4(obj->GetFaceVertexColor(fi, ci));
 
-        dst_indices += count;
-        dst_uv += count;
+#if MQPLUGIN_VERSION >= 0x0460
+            // normal
+            BYTE flags;
+            obj->GetFaceVertexNormal(fi, ci, flags, (MQPoint&)*(dst_normals++));
+#endif
+        }
     }
 
-    // normals
-#if MQPLUGIN_VERSION >= 0x0460
-    for (int fi = 0; fi < nfaces; ++fi) {
-        int count = dst_counts[fi];
-        BYTE flags;
-        for (int ci = 0; ci < count; ++ci)
-            obj->GetFaceVertexNormal(fi, ci, flags, (MQPoint&)*(dst_normals++));
-    }
-#else
-    // todo: calculate normals
-#endif
+    // offset indices
+    dst_indices = dst.indices.data() + rec.index_offset;
+    int nindices = rec.index_count;
+    int voffset = rec.vertex_offset;
+    for (int ii = 0; ii < nindices; ++ii)
+        dst_indices[ii] += voffset;
+}
+
+void mqabcRecorderPlugin::FlushABC(const mqabcMesh& data, abcChrono t)
+{
+    m_mesh_sample.setFaceIndices(Abc::Int32ArraySample(data.indices.cdata(), data.indices.size()));
+    m_mesh_sample.setFaceCounts(Abc::Int32ArraySample(data.counts.cdata(), data.counts.size()));
+    m_mesh_sample.setPositions(Abc::P3fArraySample((const abcV3*)data.points.cdata(), data.points.size()));
+
+    m_sample_normals.setVals(Abc::V3fArraySample((const abcV3*)data.normals.cdata(), data.normals.size()));
+    m_mesh_sample.setNormals(m_sample_normals);
+
+    m_sample_uv.setVals(Abc::V2fArraySample((const abcV2*)data.uv.cdata(), data.uv.size()));
+    m_mesh_sample.setUVs(m_sample_uv);
+
+    m_mesh_node->getSchema().set(m_mesh_sample);
+
+    m_sample_colors.setVals(Abc::C4fArraySample((const abcC4*)data.colors.cdata(), data.colors.size()));
+    m_colors_param.set(m_sample_colors);
+
+
+    m_xform_node->getSchema().set(m_xform_sample);
+
+    m_timeline.push_back(t);
 }
 
 

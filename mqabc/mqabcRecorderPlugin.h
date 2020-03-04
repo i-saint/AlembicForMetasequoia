@@ -88,8 +88,8 @@ public:
     bool OpenABC(const std::string& v);
     bool CloseABC();
 
-    void SetInterval(float v);
-    float GetInterval() const;
+    void SetInterval(double v);
+    double GetInterval() const;
 
     void LogInfo(const char *message);
     void MarkSceneDirty();
@@ -105,10 +105,14 @@ private:
         int index_offset = 0;
         int face_offset = 0;
         std::string name;
+
+        MQDocument mqdocument;
+        MQObject mqobject;
     };
 
-    void Write(MQDocument doc, void* arg);
-    void ExtractMeshData(MQDocument doc, MQObject obj, ObjectRecord rec, mqabcMesh& dst);
+    bool Write(MQDocument doc);
+    void ExtractMeshData(ObjectRecord rec, mqabcMesh& dst);
+    void FlushABC(const mqabcMesh& data, abcChrono t);
 
 private:
     mqabcRecorderWindow* m_window = nullptr;
@@ -123,6 +127,13 @@ private:
     std::shared_ptr<Abc::OObject> m_root_node;
     std::shared_ptr<AbcGeom::OXform> m_xform_node;
     std::shared_ptr<AbcGeom::OPolyMesh> m_mesh_node;
+
+    AbcGeom::XformSample m_xform_sample;
+    AbcGeom::OC4fGeomParam m_colors_param;
+    AbcGeom::OPolyMeshSchema::Sample m_mesh_sample;
+    AbcGeom::ON3fGeomParam::Sample m_sample_normals;
+    AbcGeom::OV2fGeomParam::Sample m_sample_uv;
+    AbcGeom::OC4fGeomParam::Sample m_sample_colors;
     RawVector<abcChrono> m_timeline;
 
     mqabcMesh m_mesh;
