@@ -74,6 +74,18 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
 
         m_log = CreateLabel(vf, mu::ToWCS(""));
     }
+
+#ifdef mqabcDebug
+    {
+        MQFrame* vf = CreateVerticalFrame(this);
+        vf->SetOutSpace(outer_margin);
+        vf->SetInSpace(inner_margin);
+
+        m_button_debug = CreateButton(vf, L"Debug");
+        m_button_debug->AddClickEvent(this, &mqabcRecorderWindow::OnDebugClicked);
+    }
+#endif // mqabcDebug
+
     this->AddHideEvent(this, &mqabcRecorderWindow::OnHide);
 }
 
@@ -136,6 +148,14 @@ BOOL mqabcRecorderWindow::OnRecordingClicked(MQWidgetBase* sender, MQDocument do
 
     return 0;
 }
+
+#ifdef mqabcDebug
+BOOL mqabcRecorderWindow::OnDebugClicked(MQWidgetBase* sender, MQDocument doc)
+{
+    m_plugin->DbgDoSomething();
+    return 0;
+}
+#endif // mqabcDebug
 
 void mqabcRecorderWindow::LogInfo(const char* message)
 {

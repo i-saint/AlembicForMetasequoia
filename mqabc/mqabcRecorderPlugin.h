@@ -88,9 +88,11 @@ public:
     bool OpenABC(const std::string& v);
     bool CloseABC();
 
+    const std::string& GetMQOPath() const;
+    const std::string& GetABCPath() const;
     bool IsArchiveOpened() const;
     bool IsRecording() const;
-    void EnableRecording(bool v);
+    void SetRecording(bool v);
     void SetInterval(double v);
     double GetInterval() const;
     void SetScaleFactor(float v);
@@ -101,6 +103,11 @@ public:
     void LogInfo(const char *message);
     void MarkSceneDirty();
     void Flush();
+
+#ifdef mqabcDebug
+    void DbgDoSomething();
+    bool DbgDoSomethingImpl(MQDocument doc);
+#endif // mqabcDebug
 
 private:
     struct ObjectRecord
@@ -126,6 +133,7 @@ private:
     bool m_dirty = false;
     bool m_recording = false;
 
+    std::string m_mqo_path;
     std::string m_abc_path;
     mu::nanosec m_start_time = 0;
     mu::nanosec m_last_flush = 0;

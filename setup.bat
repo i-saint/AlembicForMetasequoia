@@ -9,7 +9,7 @@ IF NOT EXIST "7za.exe" (
 
 echo "downloading external libararies..."
 powershell.exe -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "[System.Net.ServicePointManager]::SecurityProtocol=[System.Net.SecurityProtocolType]::Tls12; wget https://github.com/i-saint/AlembicForMetasequoia/releases/download/libraries/Externals.7z -OutFile Externals.7z"
-7za.exe x -aos External.7z
+7za.exe x -aos Externals.7z
 
 echo "downloading mqsdk470.zip ..."
 powershell.exe -Command "wget http://www.metaseq.net/metaseq/mqsdk470.zip -OutFile mqsdk470.zip"

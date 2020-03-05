@@ -31,6 +31,8 @@ void SanitizeNodeName(std::wstring& dst);
 void SanitizeNodeName(std::string& dst);
 void SanitizeNodeName(char *dst);
 std::string SanitizeFileName(const std::string& src);
+std::string GetDirectory(const char* src);
+std::string GetDirectory(const wchar_t* src);
 std::string GetFilename(const char *src);
 std::string GetFilename(const wchar_t *src);
 std::string GetFilename_NoExtension(const char *src);

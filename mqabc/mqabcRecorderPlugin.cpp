@@ -182,6 +182,7 @@ void mqabcRecorderPlugin::OnDraw(MQDocument doc, MQScene scene, int width, int h
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnNewDocument(MQDocument doc, const char *filename, NEW_DOCUMENT_PARAM& param)
 {
+    m_mqo_path = filename ? filename : "Untitled";
     MarkSceneDirty();
 }
 
@@ -191,6 +192,7 @@ void mqabcRecorderPlugin::OnNewDocument(MQDocument doc, const char *filename, NE
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnEndDocument(MQDocument doc)
 {
+    m_mqo_path = "Untitled";
     CloseABC();
 }
 
@@ -200,6 +202,7 @@ void mqabcRecorderPlugin::OnEndDocument(MQDocument doc)
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnSaveDocument(MQDocument doc, const char *filename, SAVE_DOCUMENT_PARAM& param)
 {
+    m_mqo_path = filename ? filename : "Untitled";
 }
 
 //---------------------------------------------------------------------------
@@ -350,6 +353,15 @@ bool mqabcRecorderPlugin::CloseABC()
     return true;
 }
 
+const std::string& mqabcRecorderPlugin::GetMQOPath() const
+{
+    return m_mqo_path;
+}
+const std::string& mqabcRecorderPlugin::GetABCPath() const
+{
+    return m_abc_path;
+}
+
 bool mqabcRecorderPlugin::IsArchiveOpened() const
 {
     return m_archive;
@@ -359,7 +371,7 @@ bool mqabcRecorderPlugin::IsRecording() const
 {
     return m_recording && m_archive;
 }
-void mqabcRecorderPlugin::EnableRecording(bool v)
+void mqabcRecorderPlugin::SetRecording(bool v)
 {
     m_recording = v;
 }
@@ -553,6 +565,19 @@ void msmqLogInfo(const char *message)
 {
     g_plugin.LogInfo(message);
 }
+
+#ifdef mqabcDebug
+void mqabcRecorderPlugin::DbgDoSomething()
+{
+    Execute(&mqabcRecorderPlugin::DbgDoSomethingImpl);
+}
+
+bool mqabcRecorderPlugin::DbgDoSomethingImpl(MQDocument doc)
+{
+    return false;
+}
+#endif // mqabcDebug
+
 
 #ifdef _WIN32
 //---------------------------------------------------------------------------

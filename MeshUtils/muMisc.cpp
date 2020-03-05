@@ -169,6 +169,25 @@ std::string SanitizeFileName(const std::string& src)
     return ret;
 }
 
+std::string GetDirectory(const char* src)
+{
+    int last_separator = 0;
+    for (int i = 0; src[i] != L'\0'; ++i) {
+        if (src[i] == L'\\' || src[i] == L'/')
+            last_separator = i;
+    }
+    return std::string(src, last_separator);
+}
+std::string GetDirectory(const wchar_t* src)
+{
+    int last_separator = 0;
+    for (int i = 0; src[i] != L'\0'; ++i) {
+        if (src[i] == L'\\' || src[i] == L'/')
+            last_separator = i;
+    }
+    return ToMBS(std::wstring(src, last_separator));
+}
+
 std::string GetFilename(const char *src)
 {
     int last_separator = 0;
