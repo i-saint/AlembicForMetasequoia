@@ -14,6 +14,8 @@ public:
     RawVector<int> counts;       // 
     RawVector<int> indices;
 
+    void clear();
     void resize(int npoints, int nindices, int nfaces);
     void transform(const float4x4 v);
+    void merge(const mqabcMesh& other);
 };

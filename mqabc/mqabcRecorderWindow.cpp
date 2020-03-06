@@ -130,9 +130,23 @@ BOOL mqabcRecorderWindow::OnScaleChange(MQWidgetBase* sender, MQDocument doc)
 BOOL mqabcRecorderWindow::OnRecordingClicked(MQWidgetBase* sender, MQDocument doc)
 {
     if (!m_plugin->IsArchiveOpened()) {
+        // show file open directory
+
         MQSaveFileDialog dlg(*this);
         dlg.AddFilter(L"Alembic file (*.abc)|*.abc");
         dlg.SetDefaultExt(L"abc");
+
+        auto& mqo_path = m_plugin->GetMQOPath();
+        auto dir = mu::GetDirectory(mqo_path.c_str());
+        auto filename = mu::GetFilename_NoExtension(mqo_path.c_str());
+        if (filename.empty())
+            filename = "Untitled";
+        filename += ".abc";
+
+        if (!dir.empty())
+            dlg.SetInitialDir(mu::ToWCS(dir));
+        dlg.SetFileName(mu::ToWCS(filename));
+
         if (dlg.Execute()) {
             auto path = dlg.GetFileName();
             if (m_plugin->OpenABC(mu::ToMBS(path))) {

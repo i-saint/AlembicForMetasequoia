@@ -182,7 +182,7 @@ void mqabcRecorderPlugin::OnDraw(MQDocument doc, MQScene scene, int width, int h
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnNewDocument(MQDocument doc, const char *filename, NEW_DOCUMENT_PARAM& param)
 {
-    m_mqo_path = filename ? filename : "Untitled";
+    m_mqo_path = filename ? filename : "";
     MarkSceneDirty();
 }
 
@@ -192,7 +192,7 @@ void mqabcRecorderPlugin::OnNewDocument(MQDocument doc, const char *filename, NE
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnEndDocument(MQDocument doc)
 {
-    m_mqo_path = "Untitled";
+    m_mqo_path.clear();
     CloseABC();
 }
 
@@ -202,7 +202,7 @@ void mqabcRecorderPlugin::OnEndDocument(MQDocument doc)
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnSaveDocument(MQDocument doc, const char *filename, SAVE_DOCUMENT_PARAM& param)
 {
-    m_mqo_path = filename ? filename : "Untitled";
+    m_mqo_path = filename ? filename : "";
 }
 
 //---------------------------------------------------------------------------
@@ -317,9 +317,17 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     // add dummy time sampling
     auto ts = Abc::TimeSampling(Abc::chrono_t(1.0f / 30.0f), Abc::chrono_t(0.0));
     auto tsi = m_archive.addTimeSampling(ts);
+
+    // create nodes
+    auto node_name = mu::GetFilename_NoExtension(m_mqo_path.c_str());
+    if (node_name.empty())
+        node_name = mu::GetFilename_NoExtension(m_abc_path.c_str());
+    if (node_name.empty())
+        node_name = "Untitled";
+
     m_root_node.reset(new AbcGeom::OObject(m_archive, AbcGeom::kTop, tsi));
-    m_xform_node.reset(new AbcGeom::OXform(*m_root_node, std::string("mesh"), tsi));
-    m_mesh_node.reset(new AbcGeom::OPolyMesh(*m_xform_node, std::string("mesh"), tsi));
+    m_xform_node.reset(new AbcGeom::OXform(*m_root_node, node_name, tsi));
+    m_mesh_node.reset(new AbcGeom::OPolyMesh(*m_xform_node, node_name + "_Mesh", tsi));
 
     auto props = m_mesh_node->getSchema().getArbGeomParams();
     m_colors_param = AbcGeom::OC4fGeomParam(props, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
@@ -453,7 +461,7 @@ bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
         npoints += rec.vertex_count;
 
         rec.face_offset += nfaces;
-        rec.face_count += obj->GetFaceCount();
+        rec.face_count = obj->GetFaceCount();
         nfaces += rec.face_count;
 
         int index_count = 0;
