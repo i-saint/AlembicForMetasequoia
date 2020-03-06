@@ -329,8 +329,10 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     m_xform_node.reset(new AbcGeom::OXform(*m_root_node, node_name, tsi));
     m_mesh_node.reset(new AbcGeom::OPolyMesh(*m_xform_node, node_name + "_Mesh", tsi));
 
-    auto props = m_mesh_node->getSchema().getArbGeomParams();
-    m_colors_param = AbcGeom::OC4fGeomParam(props, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
+    if (m_capture_colors) {
+        auto props = m_mesh_node->getSchema().getArbGeomParams();
+        m_colors_param = AbcGeom::OC4fGeomParam(props, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
+    }
     m_recording = true;
 
     return true;
@@ -344,8 +346,10 @@ bool mqabcRecorderPlugin::CloseABC()
     if (m_task_write.valid())
         m_task_write.wait();
 
-    auto ts = Abc::TimeSampling(Abc::TimeSamplingType(Abc::TimeSamplingType::kAcyclic), m_timeline);
-    *m_archive.getTimeSampling(1) = ts;
+    if (m_keep_time) {
+        auto ts = Abc::TimeSampling(Abc::TimeSamplingType(Abc::TimeSamplingType::kAcyclic), m_timeline);
+        *m_archive.getTimeSampling(1) = ts;
+    }
 
     m_colors_param.reset();
     m_mesh_node.reset();
@@ -441,10 +445,11 @@ void mqabcRecorderPlugin::Flush()
 
 bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
 {
+    // wait previous task
     if (m_task_write.valid())
         m_task_write.wait();
 
-    // do extract mesh data
+    // prepare
     int nobjects = doc->GetObjectCount();
     m_obj_records.resize(nobjects);
     for (int oi = 0; oi < nobjects; ++oi) {
@@ -453,12 +458,13 @@ bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
         rec.mqobject = doc->GetObject(oi);
     }
 
+    // extract mesh data
     mu::parallel_for(0, nobjects, [this](int oi) {
         ExtractMeshData(m_obj_records[oi]);
     });
 
     // flush abc
-    auto abctime = mu::NS2Sd(m_last_flush - m_start_time);
+    auto abctime = mu::NS2Sd(m_last_flush - m_start_time) * m_time_scale;
     m_task_write = std::async(std::launch::async, [this, abctime]() { FlushABC(abctime); });
 
     return true;
@@ -466,19 +472,19 @@ bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
 
 void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)
 {
-    int nfaces = rec.mqobject->GetFaceCount();
-    int npoints = rec.mqobject->GetVertexCount();
+    auto obj = rec.mqobject;
+    int nfaces = obj->GetFaceCount();
+    int npoints = obj->GetVertexCount();
     int nindices = 0;
     for (int fi = 0; fi < nfaces; ++fi)
-        nindices += rec.mqobject->GetFacePointCount(fi);
+        nindices += obj->GetFacePointCount(fi);
 
     auto& dst = rec.mesh;
     dst.resize(npoints, nindices, nfaces);
 
-    auto obj = rec.mqobject;
     auto dst_points = dst.points.data();
     auto dst_normals = dst.normals.data();
-    auto dst_uv = dst.uv.data();
+    auto dst_uvs = dst.uvs.data();
     auto dst_colors = dst.colors.data();
     auto dst_mids = dst.material_ids.data();
     auto dst_counts = dst.counts.data();
@@ -490,21 +496,25 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)
     obj->GetVertexArray((MQPoint*)dst_points);
     mu::Scale(dst_points, m_scale_factor, npoints);
 
+    int fc = 0; // 'actual' face count
     for (int fi = 0; fi < nfaces; ++fi) {
         // counts
+        // GetFacePointCount() may return 0 for unknown reason. skip it.
         int count = obj->GetFacePointCount(fi);
-        dst_counts[fi] = count;
+        if (count == 0)
+            continue;
+        dst_counts[fc] = count;
 
         // material IDs
-        dst_mids[fi] = obj->GetFaceMaterial(fi);
+        dst_mids[fc] = obj->GetFaceMaterial(fi);
 
         // indices
         obj->GetFacePointArray(fi, dst_indices);
         dst_indices += count;
 
         // uv
-        obj->GetFaceCoordinateArray(fi, (MQCoordinate*)dst_uv);
-        dst_uv += count;
+        obj->GetFaceCoordinateArray(fi, (MQCoordinate*)dst_uvs);
+        dst_uvs += count;
 
         for (int ci = 0; ci < count; ++ci) {
             // vertex color
@@ -516,6 +526,14 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)
             obj->GetFaceVertexNormal(fi, ci, flags, (MQPoint&)*(dst_normals++));
 #endif
         }
+
+        ++fc;
+    }
+
+    if (nfaces != fc) {
+        // refit
+        dst.counts.resize(fc);
+        dst.material_ids.resize(fc);
     }
 }
 
@@ -530,25 +548,28 @@ void mqabcRecorderPlugin::FlushABC(abcChrono t)
     // write to abc
     const auto& data = m_mesh_merged;
 
+    m_mesh_sample.reset();
     m_mesh_sample.setFaceIndices(Abc::Int32ArraySample(data.indices.cdata(), data.indices.size()));
     m_mesh_sample.setFaceCounts(Abc::Int32ArraySample(data.counts.cdata(), data.counts.size()));
     m_mesh_sample.setPositions(Abc::P3fArraySample((const abcV3*)data.points.cdata(), data.points.size()));
-
-    m_sample_normals.setVals(Abc::V3fArraySample((const abcV3*)data.normals.cdata(), data.normals.size()));
-    m_mesh_sample.setNormals(m_sample_normals);
-
-    m_sample_uv.setVals(Abc::V2fArraySample((const abcV2*)data.uv.cdata(), data.uv.size()));
-    m_mesh_sample.setUVs(m_sample_uv);
-
+    if (m_capture_normals) {
+        m_sample_normals.setVals(Abc::V3fArraySample((const abcV3*)data.normals.cdata(), data.normals.size()));
+        m_mesh_sample.setNormals(m_sample_normals);
+    }
+    if (m_capture_uvs) {
+        m_sample_uv.setVals(Abc::V2fArraySample((const abcV2*)data.uvs.cdata(), data.uvs.size()));
+        m_mesh_sample.setUVs(m_sample_uv);
+    }
     m_mesh_node->getSchema().set(m_mesh_sample);
 
-    m_sample_colors.setVals(Abc::C4fArraySample((const abcC4*)data.colors.cdata(), data.colors.size()));
-    m_colors_param.set(m_sample_colors);
-
+    if (m_capture_colors) {
+        m_sample_colors.setVals(Abc::C4fArraySample((const abcC4*)data.colors.cdata(), data.colors.size()));
+        m_colors_param.set(m_sample_colors);
+    }
 
     m_xform_node->getSchema().set(m_xform_sample);
 
-    m_timeline.push_back(t * m_time_scale);
+    m_timeline.push_back(t);
 }
 
 

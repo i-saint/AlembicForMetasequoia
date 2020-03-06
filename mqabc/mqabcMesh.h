@@ -8,7 +8,7 @@ public:
     std::string name;
     RawVector<float3> points;    // per-vertex
     RawVector<float3> normals;   // per-index
-    RawVector<float2> uv;        // 
+    RawVector<float2> uvs;       // 
     RawVector<float4> colors;    // 
     RawVector<int> material_ids; // per-face
     RawVector<int> counts;       // 

@@ -5,7 +5,7 @@ void mqabcMesh::clear()
 {
     points.clear();
     normals.clear();
-    uv.clear();
+    uvs.clear();
     colors.clear();
     material_ids.clear();
     counts.clear();
@@ -16,7 +16,7 @@ void mqabcMesh::resize(int npoints, int nindices, int nfaces)
 {
     points.resize_discard(npoints);
     normals.resize_discard(nindices);
-    uv.resize_discard(nindices);
+    uvs.resize_discard(nindices);
     colors.resize_discard(nindices);
     material_ids.resize_discard(nfaces);
     counts.resize_discard(nfaces);
@@ -40,7 +40,7 @@ void mqabcMesh::merge(const mqabcMesh& v)
 
     append(points, v.points);
     append(normals, v.normals);
-    append(uv, v.uv);
+    append(uvs, v.uvs);
     append(colors, v.colors);
     append(material_ids, v.material_ids);
     append(counts, v.counts);

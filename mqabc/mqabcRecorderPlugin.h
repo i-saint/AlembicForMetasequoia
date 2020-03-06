@@ -125,6 +125,12 @@ private:
 
 private:
     mqabcRecorderWindow* m_window = nullptr;
+    bool m_capture_normals = true;
+    bool m_capture_uvs = true;
+    bool m_capture_colors = true;
+    bool m_capture_material_ids = true;
+    bool m_keep_time = false;
+
     bool m_dirty = false;
     bool m_recording = false;
 
