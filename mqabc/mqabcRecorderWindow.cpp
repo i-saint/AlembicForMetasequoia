@@ -13,8 +13,6 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
     SetTitle(L"Alembic Recorder");
     SetOutSpace(0.4);
 
-    const size_t buf_len = 128;
-    wchar_t buf[buf_len];
     double outer_margin = 0.2;
     double inner_margin = 0.1;
 
@@ -29,14 +27,11 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
 
             m_edit_interval = CreateEdit(hf);
             m_edit_interval->SetNumeric(MQEdit::NUMERIC_DOUBLE);
-            swprintf(buf, buf_len, L"%.2lf", m_plugin->GetInterval());
-            m_edit_interval->SetText(buf);
             m_edit_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalChange);
 
             m_slider_interval = CreateSlider(vf);
             m_slider_interval->SetMin(0.0f);
             m_slider_interval->SetMax(180.0f);
-            m_slider_interval->SetPosition(m_plugin->GetInterval());
             m_slider_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalSlide);
         }
         {
@@ -44,10 +39,17 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
             CreateLabel(hf, L"Scale Factor");
             m_edit_scale = CreateEdit(hf);
             m_edit_scale->SetNumeric(MQEdit::NUMERIC_DOUBLE);
-            swprintf(buf, buf_len, L"%.3f", m_plugin->GetScaleFactor());
-            m_edit_scale->SetText(buf);
             m_edit_scale->AddChangedEvent(this, &mqabcRecorderWindow::OnScaleChange);
         }
+
+        m_check_freeze_mirror = CreateCheckBox(vf, L"Freeze Mirror");
+        m_check_freeze_mirror->AddChangedEvent(this, &mqabcRecorderWindow::OnFreezeChange);
+
+        m_check_freeze_lathe = CreateCheckBox(vf, L"Freeze Lathe");
+        m_check_freeze_lathe->AddChangedEvent(this, &mqabcRecorderWindow::OnFreezeChange);
+
+        m_check_freeze_subdiv = CreateCheckBox(vf, L"Freeze Subdiv");
+        m_check_freeze_subdiv->AddChangedEvent(this, &mqabcRecorderWindow::OnFreezeChange);
     }
 
     {
@@ -87,6 +89,8 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
 #endif // mqabcDebug
 
     this->AddHideEvent(this, &mqabcRecorderWindow::OnHide);
+
+    SyncSettings();
 }
 
 BOOL mqabcRecorderWindow::OnHide(MQWidgetBase* sender, MQDocument doc)
@@ -122,8 +126,18 @@ BOOL mqabcRecorderWindow::OnScaleChange(MQWidgetBase* sender, MQDocument doc)
     auto str = mu::ToMBS(m_edit_scale->GetText());
     auto value = std::atof(str.c_str());
     if (value != 0.0) {
-        m_plugin->SetScaleFactor((float)value);
+        auto& settings = m_plugin->GetSettings();
+        settings.scale_factor = (float)value;
     }
+    return 0;
+}
+
+BOOL mqabcRecorderWindow::OnFreezeChange(MQWidgetBase* sender, MQDocument doc)
+{
+    auto& settings = m_plugin->GetSettings();
+    settings.freeze_mirror = m_check_freeze_mirror->GetChecked();
+    settings.freeze_lathe = m_check_freeze_lathe->GetChecked();
+    settings.freeze_subdiv = m_check_freeze_subdiv->GetChecked();
     return 0;
 }
 
@@ -170,6 +184,24 @@ BOOL mqabcRecorderWindow::OnDebugClicked(MQWidgetBase* sender, MQDocument doc)
     return 0;
 }
 #endif // mqabcDebug
+
+void mqabcRecorderWindow::SyncSettings()
+{
+    const size_t buf_len = 128;
+    wchar_t buf[buf_len];
+    auto& settings = m_plugin->GetSettings();
+
+    swprintf(buf, buf_len, L"%.2lf", m_plugin->GetInterval());
+    m_edit_interval->SetText(buf);
+    m_slider_interval->SetPosition(m_plugin->GetInterval());
+
+    swprintf(buf, buf_len, L"%.3f", settings.scale_factor);
+    m_edit_scale->SetText(buf);
+
+    m_check_freeze_mirror->SetChecked(settings.freeze_mirror);
+    m_check_freeze_lathe->SetChecked(settings.freeze_lathe);
+    m_check_freeze_subdiv->SetChecked(settings.freeze_subdiv);
+}
 
 void mqabcRecorderWindow::LogInfo(const char* message)
 {

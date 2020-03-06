@@ -329,7 +329,7 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     m_xform_node.reset(new AbcGeom::OXform(*m_root_node, node_name, tsi));
     m_mesh_node.reset(new AbcGeom::OPolyMesh(*m_xform_node, node_name + "_Mesh", tsi));
 
-    if (m_capture_colors) {
+    if (m_settings.capture_colors) {
         auto props = m_mesh_node->getSchema().getArbGeomParams();
         m_colors_param = AbcGeom::OC4fGeomParam(props, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
     }
@@ -343,10 +343,9 @@ bool mqabcRecorderPlugin::CloseABC()
     if (!m_archive)
         return false;
 
-    if (m_task_write.valid())
-        m_task_write.wait();
+    WaitFlush();
 
-    if (m_keep_time) {
+    if (m_settings.keep_time) {
         auto ts = Abc::TimeSampling(Abc::TimeSamplingType(Abc::TimeSamplingType::kAcyclic), m_timeline);
         *m_archive.getTimeSampling(1) = ts;
     }
@@ -397,21 +396,9 @@ double mqabcRecorderPlugin::GetInterval() const
     return mu::NS2Sd(m_interval);
 }
 
-void mqabcRecorderPlugin::SetScaleFactor(float v)
+mqabcRecorderSettings& mqabcRecorderPlugin::GetSettings()
 {
-    m_scale_factor = v;
-}
-float mqabcRecorderPlugin::GetScaleFactor()
-{
-    return m_scale_factor;
-}
-void mqabcRecorderPlugin::SetTimeScale(float v)
-{
-    m_time_scale = v;
-}
-float mqabcRecorderPlugin::GetTimeScale()
-{
-    return m_time_scale;
+    return m_settings;
 }
 
 
@@ -445,9 +432,7 @@ void mqabcRecorderPlugin::Flush()
 
 bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
 {
-    // wait previous task
-    if (m_task_write.valid())
-        m_task_write.wait();
+    WaitFlush();
 
     // prepare
     int nobjects = doc->GetObjectCount();
@@ -455,7 +440,28 @@ bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
     for (int oi = 0; oi < nobjects; ++oi) {
         auto& rec = m_obj_records[oi];
         rec.mqdocument = doc;
-        rec.mqobject = doc->GetObject(oi);
+
+        auto obj = doc->GetObject(oi);
+        if ((obj->GetMirrorType() != MQOBJECT_MIRROR_NONE && m_settings.freeze_mirror) ||
+            (obj->GetLatheType() != MQOBJECT_LATHE_NONE && m_settings.freeze_lathe) ||
+            (obj->GetPatchType() != MQOBJECT_PATCH_NONE && m_settings.freeze_subdiv))
+        {
+            rec.mqobject = obj->Clone();
+
+            DWORD freeze_flags = 0;
+            if (m_settings.freeze_mirror)
+                freeze_flags |= MQOBJECT_FREEZE_MIRROR;
+            if (m_settings.freeze_lathe)
+                freeze_flags |= MQOBJECT_FREEZE_LATHE;
+            if (m_settings.freeze_subdiv)
+                freeze_flags |= MQOBJECT_FREEZE_PATCH;
+            rec.mqobject->Freeze(freeze_flags);
+
+            rec.need_release = true;
+        }
+        else {
+            rec.mqobject = obj;
+        }
     }
 
     // extract mesh data
@@ -544,7 +550,6 @@ void mqabcRecorderPlugin::FlushABC(abcChrono t)
     for (auto& rec : m_obj_records)
         m_mesh_merged.merge(rec.mesh);
 
-
     // write to abc
     const auto& data = m_mesh_merged;
 
@@ -552,24 +557,41 @@ void mqabcRecorderPlugin::FlushABC(abcChrono t)
     m_mesh_sample.setFaceIndices(Abc::Int32ArraySample(data.indices.cdata(), data.indices.size()));
     m_mesh_sample.setFaceCounts(Abc::Int32ArraySample(data.counts.cdata(), data.counts.size()));
     m_mesh_sample.setPositions(Abc::P3fArraySample((const abcV3*)data.points.cdata(), data.points.size()));
-    if (m_capture_normals) {
+    if (m_settings.capture_normals) {
         m_sample_normals.setVals(Abc::V3fArraySample((const abcV3*)data.normals.cdata(), data.normals.size()));
         m_mesh_sample.setNormals(m_sample_normals);
     }
-    if (m_capture_uvs) {
+    if (m_settings.capture_uvs) {
         m_sample_uv.setVals(Abc::V2fArraySample((const abcV2*)data.uvs.cdata(), data.uvs.size()));
         m_mesh_sample.setUVs(m_sample_uv);
     }
     m_mesh_node->getSchema().set(m_mesh_sample);
 
-    if (m_capture_colors) {
+    if (m_settings.capture_colors) {
         m_sample_colors.setVals(Abc::C4fArraySample((const abcC4*)data.colors.cdata(), data.colors.size()));
         m_colors_param.set(m_sample_colors);
     }
 
     m_xform_node->getSchema().set(m_xform_sample);
-
     m_timeline.push_back(t);
+}
+
+void mqabcRecorderPlugin::WaitFlush()
+{
+    if (!m_task_write.valid())
+        return;
+
+    m_task_write.wait();
+    m_task_write = {};
+
+    for (auto& rec : m_obj_records) {
+        if (rec.need_release) {
+            rec.mqobject->DeleteThis();
+            rec.need_release = false;
+            rec.mqobject = nullptr;
+        }
+    }
+
 }
 
 

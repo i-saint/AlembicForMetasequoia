@@ -12,11 +12,13 @@ public:
     BOOL OnIntervalChange(MQWidgetBase* sender, MQDocument doc);
     BOOL OnIntervalSlide(MQWidgetBase* sender, MQDocument doc);
     BOOL OnScaleChange(MQWidgetBase* sender, MQDocument doc);
+    BOOL OnFreezeChange(MQWidgetBase* sender, MQDocument doc);
     BOOL OnRecordingClicked(MQWidgetBase* sender, MQDocument doc);
 #ifdef mqabcDebug
     BOOL OnDebugClicked(MQWidgetBase* sender, MQDocument doc);
 #endif // mqabcDebug
 
+    void SyncSettings();
     void LogInfo(const char *message);
 
 private:

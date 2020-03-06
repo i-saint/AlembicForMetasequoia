@@ -3,6 +3,20 @@
 
 class mqabcRecorderWindow;
 
+struct mqabcRecorderSettings
+{
+    bool capture_normals = true;
+    bool capture_uvs = true;
+    bool capture_colors = true;
+    bool capture_material_ids = true;
+    bool freeze_mirror = true;
+    bool freeze_lathe = true;
+    bool freeze_subdiv = false;
+    bool keep_time = false;
+    float scale_factor = 0.05f;
+    float time_scale = 1.0f;
+};
+
 class mqabcRecorderPlugin : public MQStationPlugin
 {
 public:
@@ -95,10 +109,7 @@ public:
     void SetRecording(bool v);
     void SetInterval(double v);
     double GetInterval() const;
-    void SetScaleFactor(float v);
-    float GetScaleFactor();
-    void SetTimeScale(float v);
-    float GetTimeScale();
+    mqabcRecorderSettings& GetSettings();
 
     void LogInfo(const char *message);
     void MarkSceneDirty();
@@ -114,6 +125,7 @@ private:
     {
         MQDocument mqdocument;
         MQObject mqobject;
+        bool need_release = false;
 
         std::string name;
         mqabcMesh mesh;
@@ -122,14 +134,11 @@ private:
     bool CaptureFrame(MQDocument doc);
     void ExtractMeshData(ObjectRecord& rec);
     void FlushABC(abcChrono t);
+    void WaitFlush();
 
 private:
     mqabcRecorderWindow* m_window = nullptr;
-    bool m_capture_normals = true;
-    bool m_capture_uvs = true;
-    bool m_capture_colors = true;
-    bool m_capture_material_ids = true;
-    bool m_keep_time = false;
+    mqabcRecorderSettings m_settings;
 
     bool m_dirty = false;
     bool m_recording = false;
@@ -138,7 +147,7 @@ private:
     std::string m_abc_path;
     mu::nanosec m_start_time = 0;
     mu::nanosec m_last_flush = 0;
-    mu::nanosec m_interval = 10000000000; // 10 sec
+    mu::nanosec m_interval = 5000000000; // 5 sec
     float m_scale_factor = 0.05f;
     float m_time_scale = 1.0f;
 
