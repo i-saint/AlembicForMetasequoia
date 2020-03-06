@@ -428,7 +428,7 @@ void mqabcRecorderPlugin::Flush()
         return;
 
     auto t = mu::Now();
-    if (m_last_flush - t < m_interval)
+    if (t - m_last_flush < m_interval)
         return;
 
     m_dirty = false;
@@ -444,66 +444,52 @@ bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
     if (m_task_write.valid())
         m_task_write.wait();
 
+    // do extract mesh data
     int nobjects = doc->GetObjectCount();
-    int npoints = 0, nindices = 0, nfaces = 0;
-
-    // count elements and offsets
     m_obj_records.resize(nobjects);
     for (int oi = 0; oi < nobjects; ++oi) {
-        auto obj = doc->GetObject(oi);
         auto& rec = m_obj_records[oi];
-
         rec.mqdocument = doc;
-        rec.mqobject = obj;
-
-        rec.vertex_offset = npoints;
-        rec.vertex_count = obj->GetVertexCount();
-        npoints += rec.vertex_count;
-
-        rec.face_offset += nfaces;
-        rec.face_count = obj->GetFaceCount();
-        nfaces += rec.face_count;
-
-        int index_count = 0;
-        for (int fi = 0; fi < nfaces; ++fi)
-            index_count += obj->GetFacePointCount(fi);
-
-        rec.index_offset = nindices;
-        rec.index_count = index_count;
-        nindices += index_count;
+        rec.mqobject = doc->GetObject(oi);
     }
 
-    // reserve mesh data
-    m_mesh.resize(npoints, nindices, nfaces);
-
-    // do extract mesh data
     mu::parallel_for(0, nobjects, [this](int oi) {
-        ExtractMeshData(m_obj_records[oi], m_mesh);
+        ExtractMeshData(m_obj_records[oi]);
     });
 
     // flush abc
     auto abctime = mu::NS2Sd(m_last_flush - m_start_time);
-    m_task_write = std::async(std::launch::async, [this, abctime]() { FlushABC(m_mesh, abctime); });
+    m_task_write = std::async(std::launch::async, [this, abctime]() { FlushABC(abctime); });
 
     return true;
 }
 
-void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord rec, mqabcMesh& dst)
+void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)
 {
+    int nfaces = rec.mqobject->GetFaceCount();
+    int npoints = rec.mqobject->GetVertexCount();
+    int nindices = 0;
+    for (int fi = 0; fi < nfaces; ++fi)
+        nindices += rec.mqobject->GetFacePointCount(fi);
+
+    auto& dst = rec.mesh;
+    dst.resize(npoints, nindices, nfaces);
+
     auto obj = rec.mqobject;
-    auto dst_points = dst.points.data() + rec.vertex_offset;
-    auto dst_normals = dst.normals.data() + rec.index_offset;
-    auto dst_uv = dst.uv.data() + rec.index_offset;
-    auto dst_colors = dst.colors.data() + rec.index_offset;
-    auto dst_mids = dst.material_ids.data() + rec.face_offset;
-    auto dst_counts = dst.counts.data() + rec.face_offset;
-    auto dst_indices = dst.indices.data() + rec.index_offset;
+    auto dst_points = dst.points.data();
+    auto dst_normals = dst.normals.data();
+    auto dst_uv = dst.uv.data();
+    auto dst_colors = dst.colors.data();
+    auto dst_mids = dst.material_ids.data();
+    auto dst_counts = dst.counts.data();
+    auto dst_indices = dst.indices.data();
+
+    rec.name = obj->GetName();
 
     // points
     obj->GetVertexArray((MQPoint*)dst_points);
-    mu::Scale(dst_points, m_scale_factor, rec.vertex_count);
+    mu::Scale(dst_points, m_scale_factor, npoints);
 
-    int nfaces = rec.face_count;
     for (int fi = 0; fi < nfaces; ++fi) {
         // counts
         int count = obj->GetFacePointCount(fi);
@@ -531,17 +517,19 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord rec, mqabcMesh& dst)
 #endif
         }
     }
-
-    // offset indices
-    dst_indices = dst.indices.data() + rec.index_offset;
-    int nindices = rec.index_count;
-    int voffset = rec.vertex_offset;
-    for (int ii = 0; ii < nindices; ++ii)
-        dst_indices[ii] += voffset;
 }
 
-void mqabcRecorderPlugin::FlushABC(const mqabcMesh& data, abcChrono t)
+void mqabcRecorderPlugin::FlushABC(abcChrono t)
 {
+    // make merged mesh
+    m_mesh_merged.clear();
+    for (auto& rec : m_obj_records)
+        m_mesh_merged.merge(rec.mesh);
+
+
+    // write to abc
+    const auto& data = m_mesh_merged;
+
     m_mesh_sample.setFaceIndices(Abc::Int32ArraySample(data.indices.cdata(), data.indices.size()));
     m_mesh_sample.setFaceCounts(Abc::Int32ArraySample(data.counts.cdata(), data.counts.size()));
     m_mesh_sample.setPositions(Abc::P3fArraySample((const abcV3*)data.points.cdata(), data.points.size()));

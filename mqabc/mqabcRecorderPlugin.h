@@ -112,21 +112,16 @@ public:
 private:
     struct ObjectRecord
     {
-        int vertex_count = 0;
-        int index_count = 0;
-        int face_count = 0;
-        int vertex_offset = 0;
-        int index_offset = 0;
-        int face_offset = 0;
-        std::string name;
-
         MQDocument mqdocument;
         MQObject mqobject;
+
+        std::string name;
+        mqabcMesh mesh;
     };
 
     bool CaptureFrame(MQDocument doc);
-    void ExtractMeshData(ObjectRecord rec, mqabcMesh& dst);
-    void FlushABC(const mqabcMesh& data, abcChrono t);
+    void ExtractMeshData(ObjectRecord& rec);
+    void FlushABC(abcChrono t);
 
 private:
     mqabcRecorderWindow* m_window = nullptr;
@@ -154,7 +149,7 @@ private:
     AbcGeom::OC4fGeomParam::Sample m_sample_colors;
     std::vector<abcChrono> m_timeline;
 
-    mqabcMesh m_mesh;
+    mqabcMesh m_mesh_merged;
     std::vector<ObjectRecord> m_obj_records;
     std::future<void> m_task_write;
 };
