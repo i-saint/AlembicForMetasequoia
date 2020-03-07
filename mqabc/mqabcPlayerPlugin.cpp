@@ -312,14 +312,15 @@ bool mqabcPlayerPlugin::OpenABC(const std::string& path)
         Alembic::AbcCoreOgawa::ReadArchive archive_reader(streams);
         m_archive = Abc::IArchive(archive_reader(path), Abc::kWrapExisting, Abc::ErrorHandler::kThrowPolicy);
         m_abc_path = path;
+
+        m_top_node = new TopNode(m_archive.getTop());
+        ConstructTree(m_top_node);
     }
     catch (Alembic::Util::Exception e)
     {
         //LogInfo("Failed (%s)", e.what());
         return false;
     }
-
-    // todo
 
     return true;
 }
@@ -329,6 +330,10 @@ bool mqabcPlayerPlugin::CloseABC()
     if (!m_archive)
         return false;
 
+    m_top_node = nullptr;
+    m_mesh_nodes.clear();
+    m_nodes.clear();
+
     m_archive.reset();
     m_stream.close();
     m_abc_path.clear();
@@ -336,8 +341,46 @@ bool mqabcPlayerPlugin::CloseABC()
     return true;
 }
 
+void mqabcPlayerPlugin::ConstructTree(Node* n)
+{
+    m_nodes.push_back(NodePtr(n));
+
+    auto& abc = n->abcobj;
+    size_t nchildren = abc.getNumChildren();
+    for (size_t ci = 0; ci < nchildren; ++ci) {
+        auto cabc = abc.getChild(ci);
+
+        const auto& metadata = cabc.getMetaData();
+        Node* c = nullptr;
+        if (AbcGeom::IXformSchema::matches(metadata)) {
+            c = new XformNode(n, cabc);
+        }
+        else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
+            c = new MeshNode(n, cabc);
+            m_mesh_nodes.push_back((MeshNode*)c);
+        }
+        else {
+            c = new Node(n, cabc);
+        }
+        ConstructTree(c);
+    }
+}
+
 void mqabcPlayerPlugin::Seek(double time)
 {
+    if (!m_archive)
+        return;
+
+    m_top_node->update(time);
+    mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [](MeshNode *n) {
+        n->applyTransform();
+    });
+
+    m_mesh_merged.clear();
+    for (auto n : m_mesh_nodes)
+        m_mesh_merged.merge(n->mesh);
+    m_mesh_merged.clearInvalidComponent();
+
     // todo
 }
 

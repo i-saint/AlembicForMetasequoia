@@ -111,6 +111,8 @@ private:
         virtual Type getType() const;
         virtual void update(abcChrono time);
 
+        template<class NodeT> NodeT* findParent();
+
         Node* parent = nullptr;
         std::vector<Node*> children;
         Abc::IObject abcobj;
@@ -122,6 +124,8 @@ private:
     {
     using super = Node;
     public:
+        static const Type node_type = Type::Top;
+
         TopNode(Abc::IObject abc);
         Type getType() const override;
     };
@@ -131,11 +135,14 @@ private:
     {
     using super = Node;
     public:
+        static const Type node_type = Type::Xform;
+
         XformNode(Node* parent, Abc::IObject abc);
         Type getType() const override;
         void update(abcChrono time) override;
 
-        AbcGeom::IXformSchema schema;
+        AbcGeom::IXformSchema* schema = nullptr;
+        XformNode* parent_xform = nullptr;
         float4x4 local_matrix = float4x4::identity();
         float4x4 global_matrix = float4x4::identity();
     };
@@ -145,15 +152,20 @@ private:
     {
     using super = Node;
     public:
+        static const Type node_type = Type::PolyMesh;
+
         MeshNode(Node* parent, Abc::IObject abc);
         Type getType() const override;
         void update(abcChrono time) override;
 
         void applyTransform();
 
-        AbcGeom::IPolyMeshSchema schema;
+        AbcGeom::IPolyMeshSchema* schema = nullptr;
         mqabcMesh mesh;
+        XformNode* parent_xform = nullptr;
     };
+
+    void ConstructTree(Node *n);
 
 private:
     mqabcPlayerWindow* m_window = nullptr;
@@ -169,4 +181,6 @@ private:
     std::vector<NodePtr> m_nodes;
     TopNode* m_top_node = nullptr;
     std::vector<MeshNode*> m_mesh_nodes;
+
+    mqabcMesh m_mesh_merged;
 };

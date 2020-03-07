@@ -52,3 +52,15 @@ void mqabcMesh::merge(const mqabcMesh& v)
             indices[ii] += vertex_offset;
     }
 }
+
+void mqabcMesh::clearInvalidComponent()
+{
+    auto nindices = indices.size();
+
+    if (!normals.empty() && normals.size() != nindices)
+        normals.clear();
+    if (!uvs.empty() && uvs.size() != nindices)
+        uvs.clear();
+    if (!colors.empty() && colors.size() != nindices)
+        colors.clear();
+}

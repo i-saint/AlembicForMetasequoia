@@ -21,6 +21,7 @@ using mu::float4;
 using mu::float2x2;
 using mu::float3x3;
 using mu::float4x4;
+using mu::double4x4;
 
 using namespace Alembic;
 using abcV2 = Imath::V2f;
