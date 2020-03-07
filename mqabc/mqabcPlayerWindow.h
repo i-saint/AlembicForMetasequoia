@@ -10,13 +10,18 @@ public:
 
     BOOL OnHide(MQWidgetBase* sender, MQDocument doc);
     BOOL OnOpenClicked(MQWidgetBase* sender, MQDocument doc);
+    BOOL OnTimeEdit(MQWidgetBase* sender, MQDocument doc);
+    BOOL OnTimeSlide(MQWidgetBase* sender, MQDocument doc);
 
     void LogInfo(const char *message);
 
 private:
     mqabcPlayerPlugin* m_plugin = nullptr;
 
-    MQSlider* m_slider_interval = nullptr;
+    MQFrame* m_frame_open = nullptr;
+    MQFrame* m_frame_time = nullptr;
+    MQEdit* m_edit_time = nullptr;
+    MQSlider* m_slider_time = nullptr;
     MQButton* m_button_open = nullptr;
-    MQLabel* m_log = nullptr;
+    MQMemo* m_log = nullptr;
 };

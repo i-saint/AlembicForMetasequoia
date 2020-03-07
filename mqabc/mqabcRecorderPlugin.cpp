@@ -329,9 +329,12 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     m_xform_node.reset(new AbcGeom::OXform(*m_root_node, node_name, tsi));
     m_mesh_node.reset(new AbcGeom::OPolyMesh(*m_xform_node, node_name + "_Mesh", tsi));
 
+    auto geom_params = m_mesh_node->getSchema().getArbGeomParams();
     if (m_settings.capture_colors) {
-        auto props = m_mesh_node->getSchema().getArbGeomParams();
-        m_colors_param = AbcGeom::OC4fGeomParam(props, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
+        m_colors_param = AbcGeom::OC4fGeomParam(geom_params, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
+    }
+    if (m_settings.capture_material_ids) {
+        m_mids_param = AbcGeom::OInt32ArrayProperty(geom_params, "material_ids", tsi);
     }
     m_recording = true;
 
@@ -351,6 +354,7 @@ bool mqabcRecorderPlugin::CloseABC()
     }
 
     m_colors_param.reset();
+    m_mids_param.reset();
     m_mesh_node.reset();
     m_xform_node.reset();
     m_root_node.reset();
@@ -570,6 +574,9 @@ void mqabcRecorderPlugin::FlushABC(abcChrono t)
     if (m_settings.capture_colors) {
         m_sample_colors.setVals(Abc::C4fArraySample((const abcC4*)data.colors.cdata(), data.colors.size()));
         m_colors_param.set(m_sample_colors);
+    }
+    if (m_settings.capture_material_ids) {
+        m_mids_param.set(AbcGeom::Int32ArraySample(data.material_ids.cdata(), data.material_ids.size()));
     }
 
     m_xform_node->getSchema().set(m_xform_sample);

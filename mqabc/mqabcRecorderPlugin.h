@@ -158,6 +158,7 @@ private:
 
     AbcGeom::XformSample m_xform_sample;
     AbcGeom::OC4fGeomParam m_colors_param;
+    AbcGeom::OInt32ArrayProperty m_mids_param;
     AbcGeom::OPolyMeshSchema::Sample m_mesh_sample;
     AbcGeom::ON3fGeomParam::Sample m_sample_normals;
     AbcGeom::OV2fGeomParam::Sample m_sample_uv;

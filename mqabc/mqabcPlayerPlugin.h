@@ -141,7 +141,7 @@ private:
         Type getType() const override;
         void update(abcChrono time) override;
 
-        AbcGeom::IXformSchema* schema = nullptr;
+        AbcGeom::IXformSchema schema;
         XformNode* parent_xform = nullptr;
         float4x4 local_matrix = float4x4::identity();
         float4x4 global_matrix = float4x4::identity();
@@ -160,12 +160,13 @@ private:
 
         void applyTransform();
 
-        AbcGeom::IPolyMeshSchema* schema = nullptr;
+        AbcGeom::IPolyMeshSchema schema;
         mqabcMesh mesh;
         XformNode* parent_xform = nullptr;
     };
 
     void ConstructTree(Node *n);
+    bool DoSeek(MQDocument doc);
 
 private:
     mqabcPlayerWindow* m_window = nullptr;

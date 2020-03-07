@@ -56,6 +56,7 @@ void mqabcMesh::merge(const mqabcMesh& v)
 void mqabcMesh::clearInvalidComponent()
 {
     auto nindices = indices.size();
+    auto nfaces = counts.size();
 
     if (!normals.empty() && normals.size() != nindices)
         normals.clear();
@@ -63,4 +64,6 @@ void mqabcMesh::clearInvalidComponent()
         uvs.clear();
     if (!colors.empty() && colors.size() != nindices)
         colors.clear();
+    if (!material_ids.empty() && material_ids.size() != nfaces)
+        material_ids.clear();
 }

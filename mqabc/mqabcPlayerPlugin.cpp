@@ -371,17 +371,44 @@ void mqabcPlayerPlugin::Seek(double time)
     if (!m_archive)
         return;
 
-    m_top_node->update(time);
-    mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [](MeshNode *n) {
+    m_time = time;
+    Execute(&mqabcPlayerPlugin::DoSeek);
+}
+
+bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
+{
+    // read abc
+    m_top_node->update(m_time);
+    mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [](MeshNode* n) {
         n->applyTransform();
     });
 
+    // build merged mesh
     m_mesh_merged.clear();
     for (auto n : m_mesh_nodes)
         m_mesh_merged.merge(n->mesh);
     m_mesh_merged.clearInvalidComponent();
 
-    // todo
+
+    // update mq object
+    auto obj = doc->GetObject(0);
+    obj->Clear();
+
+    // add points
+    auto& data = m_mesh_merged;
+    for (auto& p : data.points)
+        obj->AddVertex((MQPoint&)p);
+
+    // add faces
+    {
+        size_t ii = 0;
+        for (auto c : data.counts) {
+            obj->AddFace(c, &data.indices[ii]);
+            ii += c;
+        }
+    }
+
+    return true;
 }
 
 bool mqabcPlayerPlugin::IsArchiveOpened() const

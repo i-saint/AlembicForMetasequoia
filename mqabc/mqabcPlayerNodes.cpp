@@ -51,7 +51,8 @@ mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::TopNode::getType() const
 mqabcPlayerPlugin::XformNode::XformNode(Node* p, Abc::IObject abc)
     : super(p, abc)
 {
-    schema = &((AbcGeom::IXform&)abc).getSchema();
+    auto so = AbcGeom::IXform(abc, Abc::kWrapExisting);
+    schema = so.getSchema();
     parent_xform = findParent<XformNode>();
 }
 
@@ -64,7 +65,7 @@ void mqabcPlayerPlugin::XformNode::update(abcChrono time)
 {
     Abc::ISampleSelector iss(time);
     AbcGeom::XformSample sample;
-    schema->get(sample, iss);
+    schema.get(sample, iss);
 
     auto matd = sample.getMatrix();
     local_matrix.assign((double4x4&)matd);
@@ -81,8 +82,11 @@ void mqabcPlayerPlugin::XformNode::update(abcChrono time)
 mqabcPlayerPlugin::MeshNode::MeshNode(Node* p, Abc::IObject abc)
     : super(p, abc)
 {
-    schema = &((AbcGeom::IPolyMesh&)abc).getSchema();
+    auto so = AbcGeom::IPolyMesh(abc, Abc::kWrapExisting);
+    schema = so.getSchema();
     parent_xform = findParent<XformNode>();
+
+    auto geom_params = schema.getArbGeomParams();
 }
 
 mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::MeshNode::getType() const
@@ -99,7 +103,7 @@ void mqabcPlayerPlugin::MeshNode::update(abcChrono time)
 
     {
         AbcGeom::IPolyMeshSchema::Sample sample;
-        schema->get(sample, iss);
+        schema.get(sample, iss);
 
         auto counts = sample.getFaceCounts();
         mesh.counts.assign(counts->get(), counts->size());
@@ -135,8 +139,8 @@ void mqabcPlayerPlugin::MeshNode::update(abcChrono time)
         }
     };
 
-    get_param_type(schema->getNormalsParam(), mesh.normals);
-    get_param_type(schema->getUVsParam(), mesh.uvs);
+    get_param_type(schema.getNormalsParam(), mesh.normals);
+    get_param_type(schema.getUVsParam(), mesh.uvs);
 
     mesh.clearInvalidComponent();
 
