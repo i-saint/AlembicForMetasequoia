@@ -87,10 +87,73 @@ public:
 
     bool OpenABC(const std::string& v);
     bool CloseABC();
+    void Seek(double time);
 
     bool IsArchiveOpened() const;
+    std::tuple<double, double> GetTimeRange() const;
 
     void LogInfo(const char *message);
+
+private:
+    class Node
+    {
+    public:
+        enum class Type
+        {
+            Unknown,
+            Top,
+            Xform,
+            PolyMesh,
+        };
+
+        Node(Node *parent, Abc::IObject abc);
+        virtual ~Node();
+        virtual Type getType() const;
+        virtual void update(abcChrono time);
+
+        Node* parent = nullptr;
+        std::vector<Node*> children;
+        Abc::IObject abcobj;
+    };
+    using NodePtr = std::shared_ptr<Node>;
+
+
+    class TopNode : public Node
+    {
+    using super = Node;
+    public:
+        TopNode(Abc::IObject abc);
+        Type getType() const override;
+    };
+
+
+    class XformNode : public Node
+    {
+    using super = Node;
+    public:
+        XformNode(Node* parent, Abc::IObject abc);
+        Type getType() const override;
+        void update(abcChrono time) override;
+
+        AbcGeom::IXformSchema schema;
+        float4x4 local_matrix = float4x4::identity();
+        float4x4 global_matrix = float4x4::identity();
+    };
+
+
+    class MeshNode : public Node
+    {
+    using super = Node;
+    public:
+        MeshNode(Node* parent, Abc::IObject abc);
+        Type getType() const override;
+        void update(abcChrono time) override;
+
+        void applyTransform();
+
+        AbcGeom::IPolyMeshSchema schema;
+        mqabcMesh mesh;
+    };
 
 private:
     mqabcPlayerWindow* m_window = nullptr;
@@ -102,4 +165,8 @@ private:
     abcChrono m_time_start = 0.0;
     abcChrono m_time_end = 0.0;
     abcChrono m_time = 0.0;
+
+    std::vector<NodePtr> m_nodes;
+    TopNode* m_top_node = nullptr;
+    std::vector<MeshNode*> m_mesh_nodes;
 };

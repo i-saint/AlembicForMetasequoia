@@ -336,9 +336,19 @@ bool mqabcPlayerPlugin::CloseABC()
     return true;
 }
 
+void mqabcPlayerPlugin::Seek(double time)
+{
+    // todo
+}
+
 bool mqabcPlayerPlugin::IsArchiveOpened() const
 {
     return m_archive;
+}
+
+std::tuple<double, double> mqabcPlayerPlugin::GetTimeRange() const
+{
+    return std::make_tuple(m_time_start, m_time_end);
 }
 
 void mqabcPlayerPlugin::LogInfo(const char *message)
@@ -382,3 +392,5 @@ BOOL APIENTRY DllMain(HINSTANCE hInstance,
     return TRUE;
 }
 #endif
+
+
