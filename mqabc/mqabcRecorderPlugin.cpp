@@ -586,8 +586,8 @@ void mqabcRecorderPlugin::WaitFlush()
 
     for (auto& rec : m_obj_records) {
         if (rec.need_release) {
-            rec.mqobject->DeleteThis();
             rec.need_release = false;
+            rec.mqobject->DeleteThis();
             rec.mqobject = nullptr;
         }
     }

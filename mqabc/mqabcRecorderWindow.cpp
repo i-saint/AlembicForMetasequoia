@@ -28,11 +28,6 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
             m_edit_interval = CreateEdit(hf);
             m_edit_interval->SetNumeric(MQEdit::NUMERIC_DOUBLE);
             m_edit_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalChange);
-
-            m_slider_interval = CreateSlider(vf);
-            m_slider_interval->SetMin(0.0f);
-            m_slider_interval->SetMax(180.0f);
-            m_slider_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalSlide);
         }
         {
             MQFrame* hf = CreateHorizontalFrame(vf);
@@ -66,15 +61,12 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
         vf->SetOutSpace(outer_margin);
         vf->SetInSpace(inner_margin);
 
+        m_log = CreateMemo(vf);
+        m_log->SetHorzBarStatus(MQMemo::SCROLLBAR_OFF);
+        m_log->SetVertBarStatus(MQMemo::SCROLLBAR_OFF);
+
         std::string plugin_version = "Plugin Version: " mqabcVersionString;
         CreateLabel(vf, mu::ToWCS(plugin_version));
-    }
-    {
-        MQFrame* vf = CreateVerticalFrame(this);
-        vf->SetOutSpace(outer_margin);
-        vf->SetInSpace(inner_margin);
-
-        m_log = CreateLabel(vf, mu::ToWCS(""));
     }
 
 #ifdef mqabcDebug
@@ -88,9 +80,14 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
     }
 #endif // mqabcDebug
 
+    this->AddShowEvent(this, &mqabcRecorderWindow::OnShow);
     this->AddHideEvent(this, &mqabcRecorderWindow::OnHide);
+}
 
+BOOL mqabcRecorderWindow::OnShow(MQWidgetBase* sender, MQDocument doc)
+{
     SyncSettings();
+    return 0;
 }
 
 BOOL mqabcRecorderWindow::OnHide(MQWidgetBase* sender, MQDocument doc)
@@ -105,19 +102,6 @@ BOOL mqabcRecorderWindow::OnIntervalChange(MQWidgetBase* sender, MQDocument doc)
     auto str = mu::ToMBS(m_edit_interval->GetText());
     auto value = std::atof(str.c_str());
     m_plugin->SetInterval(value);
-    m_slider_interval->SetPosition(value);
-    return 0;
-}
-
-BOOL mqabcRecorderWindow::OnIntervalSlide(MQWidgetBase* sender, MQDocument doc)
-{
-    double value = m_slider_interval->GetPosition();
-    m_plugin->SetInterval(value);
-
-    const size_t buf_len = 128;
-    wchar_t buf[buf_len];
-    swprintf(buf, buf_len, L"%.2lf", m_plugin->GetInterval());
-    m_edit_interval->SetText(buf);
     return 0;
 }
 
@@ -163,16 +147,14 @@ BOOL mqabcRecorderWindow::OnRecordingClicked(MQWidgetBase* sender, MQDocument do
 
         if (dlg.Execute()) {
             auto path = dlg.GetFileName();
-            if (m_plugin->OpenABC(mu::ToMBS(path))) {
-                m_button_recording->SetText(L"Stop Recording");
-            }
+            m_plugin->OpenABC(mu::ToMBS(path));
         }
     }
     else {
         if (m_plugin->CloseABC()) {
-            m_button_recording->SetText(L"Start Recording");
         }
     }
+    SyncSettings();
 
     return 0;
 }
@@ -193,7 +175,6 @@ void mqabcRecorderWindow::SyncSettings()
 
     swprintf(buf, buf_len, L"%.2lf", m_plugin->GetInterval());
     m_edit_interval->SetText(buf);
-    m_slider_interval->SetPosition(m_plugin->GetInterval());
 
     swprintf(buf, buf_len, L"%.3f", settings.scale_factor);
     m_edit_scale->SetText(buf);
@@ -201,6 +182,15 @@ void mqabcRecorderWindow::SyncSettings()
     m_check_freeze_mirror->SetChecked(settings.freeze_mirror);
     m_check_freeze_lathe->SetChecked(settings.freeze_lathe);
     m_check_freeze_subdiv->SetChecked(settings.freeze_subdiv);
+
+    if (m_plugin->IsRecording()) {
+        SetBackColor(MQCanvasColor(255, 0, 0));
+        m_button_recording->SetText(L"Stop Recording");
+    }
+    else {
+        SetBackColor(GetDefaultBackColor());
+        m_button_recording->SetText(L"Start Recording");
+    }
 }
 
 void mqabcRecorderWindow::LogInfo(const char* message)
