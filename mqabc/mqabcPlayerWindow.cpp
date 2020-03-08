@@ -107,7 +107,7 @@ BOOL mqabcPlayerWindow::OnOpenClicked(MQWidgetBase* sender, MQDocument doc)
             auto path = dlg.GetFileName();
             if (m_plugin->OpenABC(mu::ToMBS(path))) {
                 m_slider_sample->SetMin(0);
-                m_slider_sample->SetMax((double)m_plugin->GetSampleCount());
+                m_slider_sample->SetMax((double)(m_plugin->GetSampleCount() - 1));
                 m_slider_sample->SetPosition(0);
 
                 m_frame_open->SetVisible(false);

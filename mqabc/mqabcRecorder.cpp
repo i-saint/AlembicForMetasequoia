@@ -45,7 +45,6 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     CaptureFrame();
 
     LogInfo("succeeded to open %s\nrecording started", m_abc_path.c_str());
-
     return true;
 }
 

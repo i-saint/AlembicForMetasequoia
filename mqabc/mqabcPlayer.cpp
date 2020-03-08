@@ -270,8 +270,7 @@ bool mqabcPlayerPlugin::OpenABC(const std::string& path)
     {
         LogInfo(
             "failed to open %s\n"
-            "it may not alembic file or not in Ogawa format\n"
-            "(HDF5 format is not supported)"
+            "it may not alembic file or not in Ogawa format (HDF5 is not supported)"
             , path.c_str());
 
         CloseABC();

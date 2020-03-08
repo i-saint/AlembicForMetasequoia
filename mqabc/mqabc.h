@@ -1,12 +1,15 @@
 #pragma once
 
-#define mqabcVersion        0.1.0
-#define mqabcVersionString  "0.1.0"
+#define mqabcVersion        0.8.0
+#define mqabcVersionString  "0.8.0"
 #define mqabcCopyRight      "Copyright(C) 2020, i-saint"
 
 #define mqabcPluginProduct      0x493ADF11
 #define mqabcRecorderPluginID   0xB1CC9999
 #define mqabcPlayerPluginID     0xB1CC999A
+
+#define mqabcVertexColorPropName    "C"
+#define mqabcMaterialIDPropName     "MID"
 
 #ifdef _WIN32
     #define mqabcAPI extern "C" __declspec(dllexport)
@@ -36,6 +39,3 @@ using abcM44d = Imath::M44d;
 using abcBox = Imath::Box3f;
 using abcBoxd = Imath::Box3d;
 using abcChrono = Abc::chrono_t;
-
-#define mqabcVertexColorPropName    "rgba"
-#define mqabcMaterialIDPropName     "material_ids"

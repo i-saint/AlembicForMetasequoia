@@ -5,7 +5,7 @@ class mqabcPlayerWindow;
 
 struct mqabcPlayerSettings
 {
-    float scale_factor = 200.0f;
+    float scale_factor = 20.0f;
     bool flip_x = false;
     bool flip_yz = false;
     bool flip_faces = false;
