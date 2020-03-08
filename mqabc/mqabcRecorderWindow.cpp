@@ -20,6 +20,39 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
         MQFrame* vf = CreateVerticalFrame(this);
         vf->SetOutSpace(outer_margin);
         vf->SetInSpace(inner_margin);
+        m_frame_settings = vf;
+
+        {
+            MQFrame* hf = CreateHorizontalFrame(vf);
+            CreateLabel(hf, L"Scale Factor");
+            m_edit_scale = CreateEdit(hf);
+            m_edit_scale->SetNumeric(MQEdit::NUMERIC_DOUBLE);
+            m_edit_scale->AddChangedEvent(this, &mqabcRecorderWindow::OnScaleChange);
+        }
+
+        m_check_normals = CreateCheckBox(vf, L"Capture Normals");
+        m_check_normals->AddChangedEvent(this, &mqabcRecorderWindow::OnSettingsUpdate);
+
+        m_check_colors = CreateCheckBox(vf, L"Capture Vertex Colors");
+        m_check_colors->AddChangedEvent(this, &mqabcRecorderWindow::OnSettingsUpdate);
+
+        m_check_mids = CreateCheckBox(vf, L"Capture Material IDs");
+        m_check_mids->AddChangedEvent(this, &mqabcRecorderWindow::OnSettingsUpdate);
+
+        m_check_mirror = CreateCheckBox(vf, L"Freeze Mirror");
+        m_check_mirror->AddChangedEvent(this, &mqabcRecorderWindow::OnSettingsUpdate);
+
+        m_check_lathe = CreateCheckBox(vf, L"Freeze Lathe");
+        m_check_lathe->AddChangedEvent(this, &mqabcRecorderWindow::OnSettingsUpdate);
+
+        m_check_subdiv = CreateCheckBox(vf, L"Freeze Subdiv");
+        m_check_subdiv->AddChangedEvent(this, &mqabcRecorderWindow::OnSettingsUpdate);
+    }
+
+    {
+        MQFrame* vf = CreateVerticalFrame(this);
+        vf->SetOutSpace(outer_margin);
+        vf->SetInSpace(inner_margin);
 
         {
             MQFrame* hf = CreateHorizontalFrame(vf);
@@ -29,28 +62,6 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
             m_edit_interval->SetNumeric(MQEdit::NUMERIC_DOUBLE);
             m_edit_interval->AddChangedEvent(this, &mqabcRecorderWindow::OnIntervalChange);
         }
-        {
-            MQFrame* hf = CreateHorizontalFrame(vf);
-            CreateLabel(hf, L"Scale Factor");
-            m_edit_scale = CreateEdit(hf);
-            m_edit_scale->SetNumeric(MQEdit::NUMERIC_DOUBLE);
-            m_edit_scale->AddChangedEvent(this, &mqabcRecorderWindow::OnScaleChange);
-        }
-
-        m_check_freeze_mirror = CreateCheckBox(vf, L"Freeze Mirror");
-        m_check_freeze_mirror->AddChangedEvent(this, &mqabcRecorderWindow::OnFreezeChange);
-
-        m_check_freeze_lathe = CreateCheckBox(vf, L"Freeze Lathe");
-        m_check_freeze_lathe->AddChangedEvent(this, &mqabcRecorderWindow::OnFreezeChange);
-
-        m_check_freeze_subdiv = CreateCheckBox(vf, L"Freeze Subdiv");
-        m_check_freeze_subdiv->AddChangedEvent(this, &mqabcRecorderWindow::OnFreezeChange);
-    }
-
-    {
-        MQFrame* vf = CreateVerticalFrame(this);
-        vf->SetOutSpace(outer_margin);
-        vf->SetInSpace(inner_margin);
 
         m_button_recording = CreateButton(vf, L"Start Recording");
         m_button_recording->AddClickEvent(this, &mqabcRecorderWindow::OnRecordingClicked);
@@ -69,16 +80,16 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
         CreateLabel(vf, mu::ToWCS(plugin_version));
     }
 
-#ifdef mqabcDebug
-    {
-        MQFrame* vf = CreateVerticalFrame(this);
-        vf->SetOutSpace(outer_margin);
-        vf->SetInSpace(inner_margin);
-
-        m_button_debug = CreateButton(vf, L"Debug");
-        m_button_debug->AddClickEvent(this, &mqabcRecorderWindow::OnDebugClicked);
-    }
-#endif // mqabcDebug
+//#ifdef mqabcDebug
+//    {
+//        MQFrame* vf = CreateVerticalFrame(this);
+//        vf->SetOutSpace(outer_margin);
+//        vf->SetInSpace(inner_margin);
+//
+//        m_button_debug = CreateButton(vf, L"Debug");
+//        m_button_debug->AddClickEvent(this, &mqabcRecorderWindow::OnDebugClicked);
+//    }
+//#endif // mqabcDebug
 
     this->AddShowEvent(this, &mqabcRecorderWindow::OnShow);
     this->AddHideEvent(this, &mqabcRecorderWindow::OnHide);
@@ -116,12 +127,15 @@ BOOL mqabcRecorderWindow::OnScaleChange(MQWidgetBase* sender, MQDocument doc)
     return 0;
 }
 
-BOOL mqabcRecorderWindow::OnFreezeChange(MQWidgetBase* sender, MQDocument doc)
+BOOL mqabcRecorderWindow::OnSettingsUpdate(MQWidgetBase* sender, MQDocument doc)
 {
     auto& settings = m_plugin->GetSettings();
-    settings.freeze_mirror = m_check_freeze_mirror->GetChecked();
-    settings.freeze_lathe = m_check_freeze_lathe->GetChecked();
-    settings.freeze_subdiv = m_check_freeze_subdiv->GetChecked();
+    settings.freeze_mirror = m_check_mirror->GetChecked();
+    settings.freeze_lathe = m_check_lathe->GetChecked();
+    settings.freeze_subdiv = m_check_subdiv->GetChecked();
+    settings.capture_normals = m_check_normals->GetChecked();
+    settings.capture_colors = m_check_colors->GetChecked();
+    settings.capture_material_ids = m_check_mids->GetChecked();
     return 0;
 }
 
@@ -179,17 +193,23 @@ void mqabcRecorderWindow::SyncSettings()
     swprintf(buf, buf_len, L"%.3f", settings.scale_factor);
     m_edit_scale->SetText(buf);
 
-    m_check_freeze_mirror->SetChecked(settings.freeze_mirror);
-    m_check_freeze_lathe->SetChecked(settings.freeze_lathe);
-    m_check_freeze_subdiv->SetChecked(settings.freeze_subdiv);
+    m_check_mirror->SetChecked(settings.freeze_mirror);
+    m_check_lathe->SetChecked(settings.freeze_lathe);
+    m_check_subdiv->SetChecked(settings.freeze_subdiv);
+
+    m_check_normals->SetChecked(settings.capture_normals);
+    m_check_colors->SetChecked(settings.capture_colors);
+    m_check_mids->SetChecked(settings.capture_material_ids);
 
     if (m_plugin->IsRecording()) {
         SetBackColor(MQCanvasColor(255, 0, 0));
         m_button_recording->SetText(L"Stop Recording");
+        m_frame_settings->SetEnabled(false);
     }
     else {
         SetBackColor(GetDefaultBackColor());
         m_button_recording->SetText(L"Start Recording");
+        m_frame_settings->SetEnabled(true);
     }
 }
 

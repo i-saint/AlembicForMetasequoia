@@ -12,7 +12,7 @@ public:
     BOOL OnHide(MQWidgetBase* sender, MQDocument doc);
     BOOL OnIntervalChange(MQWidgetBase* sender, MQDocument doc);
     BOOL OnScaleChange(MQWidgetBase* sender, MQDocument doc);
-    BOOL OnFreezeChange(MQWidgetBase* sender, MQDocument doc);
+    BOOL OnSettingsUpdate(MQWidgetBase* sender, MQDocument doc);
     BOOL OnRecordingClicked(MQWidgetBase* sender, MQDocument doc);
 #ifdef mqabcDebug
     BOOL OnDebugClicked(MQWidgetBase* sender, MQDocument doc);
@@ -24,11 +24,15 @@ public:
 private:
     mqabcRecorderPlugin* m_plugin = nullptr;
 
+    MQFrame* m_frame_settings = nullptr;
     MQEdit* m_edit_interval = nullptr;
     MQEdit* m_edit_scale = nullptr;
-    MQCheckBox* m_check_freeze_mirror = nullptr;
-    MQCheckBox* m_check_freeze_lathe = nullptr;
-    MQCheckBox* m_check_freeze_subdiv = nullptr;
+    MQCheckBox* m_check_mirror = nullptr;
+    MQCheckBox* m_check_lathe = nullptr;
+    MQCheckBox* m_check_subdiv = nullptr;
+    MQCheckBox* m_check_normals = nullptr;
+    MQCheckBox* m_check_colors = nullptr;
+    MQCheckBox* m_check_mids = nullptr;
     MQButton* m_button_recording = nullptr;
     MQMemo* m_log = nullptr;
 #ifdef mqabcDebug

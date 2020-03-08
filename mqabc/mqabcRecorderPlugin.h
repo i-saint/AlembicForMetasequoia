@@ -5,9 +5,9 @@ class mqabcRecorderWindow;
 
 struct mqabcRecorderSettings
 {
-    bool capture_normals = true;
     bool capture_uvs = true;
-    bool capture_colors = true;
+    bool capture_normals = true;
+    bool capture_colors = false;
     bool capture_material_ids = true;
     bool freeze_mirror = true;
     bool freeze_lathe = true;
