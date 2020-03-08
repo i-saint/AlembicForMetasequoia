@@ -539,6 +539,7 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)
 
         ++fc;
     }
+    mu::InvertV(dst.uvs.data(), dst.uvs.size());
 
     if (nfaces != fc) {
         // refit
@@ -561,10 +562,12 @@ void mqabcRecorderPlugin::FlushABC(abcChrono t)
     m_mesh_sample.setFaceIndices(Abc::Int32ArraySample(data.indices.cdata(), data.indices.size()));
     m_mesh_sample.setFaceCounts(Abc::Int32ArraySample(data.counts.cdata(), data.counts.size()));
     m_mesh_sample.setPositions(Abc::P3fArraySample((const abcV3*)data.points.cdata(), data.points.size()));
+#if MQPLUGIN_VERSION >= 0x0460
     if (m_settings.capture_normals) {
         m_sample_normals.setVals(Abc::V3fArraySample((const abcV3*)data.normals.cdata(), data.normals.size()));
         m_mesh_sample.setNormals(m_sample_normals);
     }
+#endif
     if (m_settings.capture_uvs) {
         m_sample_uv.setVals(Abc::V2fArraySample((const abcV2*)data.uvs.cdata(), data.uvs.size()));
         m_mesh_sample.setUVs(m_sample_uv);

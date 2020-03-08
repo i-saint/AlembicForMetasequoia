@@ -342,6 +342,7 @@ bool mqabcPlayerPlugin::CloseABC()
     m_abc_path.clear();
 
     m_sample_count = m_sample_index = 0;
+    m_mqobj_id = 0;
 
     return true;
 }
@@ -380,12 +381,20 @@ void mqabcPlayerPlugin::Seek(int64_t i)
     Execute(&mqabcPlayerPlugin::DoSeek);
 }
 
+void mqabcPlayerPlugin::Refresh()
+{
+    if (!m_archive)
+        return;
+
+    Execute(&mqabcPlayerPlugin::DoSeek);
+}
+
 bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
 {
     // read abc
     m_top_node->update(m_sample_index);
     mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [this](MeshNode* n) {
-        n->applyScaleAndTransform(m_scale_factor);
+        n->convert(m_settings);
     });
 
     // build merged mesh
@@ -396,7 +405,15 @@ bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
 
 
     // update mq object
-    auto obj = doc->GetObject(0);
+    auto obj = doc->GetObjectFromUniqueID(m_mqobj_id);
+    if (!obj) {
+        obj = MQ_CreateObject();
+        doc->AddObject(obj);
+        m_mqobj_id = obj->GetUniqueID();
+
+        auto name = mu::GetFilename_NoExtension(m_abc_path.c_str());
+        obj->SetName(name.c_str());
+    }
     obj->Clear();
 
     // add points
@@ -413,7 +430,14 @@ bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
         }
     }
 
+    // todo
+
     return true;
+}
+
+mqabcPlayerSettings& mqabcPlayerPlugin::GetSettings()
+{
+    return m_settings;
 }
 
 bool mqabcPlayerPlugin::IsArchiveOpened() const

@@ -3,6 +3,14 @@
 
 class mqabcPlayerWindow;
 
+struct mqabcPlayerSettings
+{
+    float scale_factor = 200.0f;
+    bool flip_x = false;
+    bool flip_yz = false;
+    bool flip_faces = false;
+};
+
 class mqabcPlayerPlugin : public MQStationPlugin
 {
 public:
@@ -88,7 +96,9 @@ public:
     bool OpenABC(const std::string& v);
     bool CloseABC();
     void Seek(int64_t i);
+    void Refresh();
 
+    mqabcPlayerSettings& GetSettings();
     bool IsArchiveOpened() const;
     int64_t GetSampleCount() const;
 
@@ -158,7 +168,7 @@ private:
         Type getType() const override;
         void update(int64_t si) override;
 
-        void applyScaleAndTransform(float scale);
+        void convert(const mqabcPlayerSettings& settings);
 
         AbcGeom::IPolyMeshSchema schema;
         mqabcMesh mesh;
@@ -171,18 +181,18 @@ private:
 
 private:
     mqabcPlayerWindow* m_window = nullptr;
+    mqabcPlayerSettings m_settings;
 
     std::string m_abc_path;
     std::fstream m_stream;
     Abc::IArchive m_archive;
-
     int64_t m_sample_count = 0;
     int64_t m_sample_index = 0;
-    float m_scale_factor = 200.0f;
 
     std::vector<NodePtr> m_nodes;
     TopNode* m_top_node = nullptr;
     std::vector<MeshNode*> m_mesh_nodes;
 
     mqabcMesh m_mesh_merged;
+    int m_mqobj_id = 0;
 };

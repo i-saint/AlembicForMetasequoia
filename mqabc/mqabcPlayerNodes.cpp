@@ -142,15 +142,41 @@ void mqabcPlayerPlugin::MeshNode::update(int64_t si)
 
     get_param_type(schema.getNormalsParam(), mesh.normals);
     get_param_type(schema.getUVsParam(), mesh.uvs);
+    mu::InvertV(mesh.uvs.data(), mesh.uvs.size());
 
     mesh.clearInvalidComponent();
 
     super::update(si);
 }
 
-void mqabcPlayerPlugin::MeshNode::applyScaleAndTransform(float scale)
+void mqabcPlayerPlugin::MeshNode::convert(const mqabcPlayerSettings& settings)
 {
-    mu::Scale(mesh.points.data(), scale, mesh.points.size());
-    if (parent_xform)
+    if (parent_xform) {
         mesh.transform(parent_xform->global_matrix);
+    }
+
+    if (settings.scale_factor != 1.0f) {
+        mu::Scale(mesh.points.data(), settings.scale_factor, mesh.points.size());
+    }
+    if (settings.flip_x) {
+        mu::InvertX(mesh.points.data(), mesh.points.size());
+        mu::InvertX(mesh.normals.data(), mesh.normals.size());
+    }
+    if (settings.flip_yz) {
+        auto convert = [this](auto& v) { return flip_z(swap_yz(v)); };
+
+        for (auto& v : mesh.points) v = convert(v);
+        for (auto& v : mesh.normals) v = convert(v);
+    }
+    if (settings.flip_faces) {
+        size_t nfaces = mesh.counts.size();
+        int* indices = mesh.indices.data();
+        int* counts = mesh.counts.data();
+        for (size_t fi = 0; fi < nfaces; ++fi) {
+            int c = *counts;
+            std::reverse(indices, indices + c);
+            indices += c;
+            ++counts;
+        }
+    }
 }
