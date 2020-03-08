@@ -184,7 +184,7 @@ private:
     mqabcPlayerSettings m_settings;
 
     std::string m_abc_path;
-    std::fstream m_stream;
+    std::shared_ptr<std::fstream> m_stream;
     Abc::IArchive m_archive;
     int64_t m_sample_count = 0;
     int64_t m_sample_index = 0;

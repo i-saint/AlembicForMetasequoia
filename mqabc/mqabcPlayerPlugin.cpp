@@ -299,16 +299,19 @@ bool mqabcPlayerPlugin::OpenABC(const std::string& path)
     {
         // Abc::IArchive doesn't accept wide string path. so create file stream with wide string path and pass it.
         // (VisualC++'s std::ifstream accepts wide string)
+        m_stream.reset(new std::fstream());
 #ifdef WIN32
         auto wpath = mu::ToWCS(path);
-        m_stream.open(wpath.c_str(), std::ios::in | std::ios::binary);
+        m_stream->open(wpath.c_str(), std::ios::in | std::ios::binary);
 #else
-        m_stream.open(path.c_str(), std::ios::in | std::ios::binary);
+        m_stream->open(path.c_str(), std::ios::in | std::ios::binary);
 #endif
-        if (!m_stream.is_open())
+        if (!m_stream->is_open()) {
+            CloseABC();
             return false;
+        }
 
-        std::vector< std::istream*> streams{ &m_stream };
+        std::vector< std::istream*> streams{ m_stream.get() };
         Alembic::AbcCoreOgawa::ReadArchive archive_reader(streams);
         m_archive = Abc::IArchive(archive_reader(path), Abc::kWrapExisting, Abc::ErrorHandler::kThrowPolicy);
         m_abc_path = path;
@@ -322,6 +325,7 @@ bool mqabcPlayerPlugin::OpenABC(const std::string& path)
     catch (Alembic::Util::Exception e)
     {
         //LogInfo("Failed (%s)", e.what());
+        CloseABC();
         return false;
     }
 
@@ -330,15 +334,12 @@ bool mqabcPlayerPlugin::OpenABC(const std::string& path)
 
 bool mqabcPlayerPlugin::CloseABC()
 {
-    if (!m_archive)
-        return false;
-
     m_top_node = nullptr;
     m_mesh_nodes.clear();
     m_nodes.clear();
 
     m_archive.reset();
-    m_stream.close();
+    m_stream.reset();
     m_abc_path.clear();
 
     m_sample_count = m_sample_index = 0;

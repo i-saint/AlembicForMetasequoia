@@ -71,7 +71,7 @@ void mqabcPlayerPlugin::XformNode::update(int64_t si)
     local_matrix.assign((double4x4&)matd);
 
     if (parent_xform)
-        global_matrix = parent_xform->global_matrix * local_matrix;
+        global_matrix = local_matrix * parent_xform->global_matrix;
     else
         global_matrix = local_matrix;
 
