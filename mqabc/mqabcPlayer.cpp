@@ -88,6 +88,25 @@ mqabcPlayerPlugin::MeshNode::MeshNode(Node* p, Abc::IObject abc)
     sample_count = schema.getNumSamples();
 
     auto geom_params = schema.getArbGeomParams();
+    if (geom_params.valid())
+    {
+        // find vertex color and material ids params
+        size_t num_geom_params = geom_params.getNumProperties();
+        for (size_t i = 0; i < num_geom_params; ++i)
+        {
+            auto& header = geom_params.getPropertyHeader(i);
+
+            // vertex color
+            if (AbcGeom::IC4fGeomParam::matches(header))
+                rgba_param = AbcGeom::IC4fGeomParam(geom_params, header.getName());
+            if (AbcGeom::IC3fGeomParam::matches(header))
+                rgb_param = AbcGeom::IC3fGeomParam(geom_params, header.getName());
+
+            // material ids
+            if (AbcGeom::IInt32ArrayProperty::matches(header) && header.getName() == mqabcMaterialIDPropName)
+                mids_prop = AbcGeom::IInt32ArrayProperty(geom_params, header.getName());
+        }
+    }
 }
 
 mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::MeshNode::getType() const
@@ -116,9 +135,9 @@ void mqabcPlayerPlugin::MeshNode::update(int64_t si)
         mesh.points.assign((float3*)points->get(), points->size());
     }
 
-    auto get_index_params = [this, iss](auto& abcparam, auto& dst) {
+    auto get_index_params = [this, iss](auto& abcparam, auto& dst) -> bool {
         if (!abcparam.valid() || abcparam.getNumSamples() == 0)
-            return;
+            return false;
 
         using src_t = std::remove_reference_t<decltype(abcparam)>::value_type;
         using dst_t = std::remove_reference_t<decltype(dst)>::value_type;
@@ -131,19 +150,48 @@ void mqabcPlayerPlugin::MeshNode::update(int64_t si)
         const auto* src = (const dst_t*)values.get();
         if (values.size() == nindices) {
             dst.assign(src, values.size());
+            return true;
         }
         else if (values.size() == mesh.points.size()) {
             const auto* indices = mesh.indices.cdata();
             dst.resize_discard(nindices);
             for (size_t i = 0; i < nindices; ++i)
                 dst[i] = src[indices[i]];
+            return true;
+        }
+        else {
+            return false;
         }
     };
 
+    // normals
     get_index_params(schema.getNormalsParam(), mesh.normals);
+
+    // uvs
     get_index_params(schema.getUVsParam(), mesh.uvs);
     mu::InvertV(mesh.uvs.data(), mesh.uvs.size());
 
+    // colors
+    if (!get_index_params(rgba_param, mesh.colors)) {
+        // convert rgb to rgba if the param exists
+        if (get_index_params(rgb_param, tmp_rgb)) {
+            size_t size = tmp_rgb.size();
+            mesh.colors.resize_discard(size);
+            auto src = tmp_rgb.cdata();
+            auto dst = mesh.colors.data();
+            for (size_t ii = 0; ii < size; ++ii)
+                *(dst++) = to_vec4(*(src++), 1.0f);
+        }
+    }
+
+    // material ids
+    if (mids_prop.valid()) {
+        Abc::Int32ArraySamplePtr sp;
+        mids_prop.get(sp, iss);
+        mesh.material_ids.assign(sp->get(), sp->size());
+    }
+
+    // validate
     mesh.clearInvalidComponent();
 
     super::update(si);

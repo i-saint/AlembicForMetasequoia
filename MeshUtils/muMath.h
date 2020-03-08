@@ -941,6 +941,7 @@ template<class T> inline tvec3<T> to_vec3(const tvec3<T>& v) { return v; }
 template<class T> inline tvec3<T> to_vec3(const tvec4<T>& v) { return { v[0], v[1], v[2] }; }
 template<class T> inline tvec4<T> to_vec4(const tvec2<T>& v) { return { v[0], v[1], 0, 0}; }
 template<class T> inline tvec4<T> to_vec4(const tvec3<T>& v) { return { v[0], v[1], v[2], 0 }; }
+template<class T> inline tvec4<T> to_vec4(const tvec3<T>& v, T w) { return { v[0], v[1], v[2], w }; }
 template<class T> inline tvec4<T> to_vec4(const tvec4<T>& v) { return v; }
 
 template<class T> inline tmat2x2<T> to_mat2x2(const tmat2x2<T>& v)

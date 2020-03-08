@@ -34,10 +34,10 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
 
     auto geom_params = m_mesh_node->getSchema().getArbGeomParams();
     if (m_settings.capture_colors) {
-        m_colors_param = AbcGeom::OC4fGeomParam(geom_params, "rgba", false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
+        m_colors_param = AbcGeom::OC4fGeomParam(geom_params, mqabcVertexColorPropName, false, AbcGeom::GeometryScope::kFacevaryingScope, 1, tsi);
     }
     if (m_settings.capture_material_ids) {
-        m_mids_param = AbcGeom::OInt32ArrayProperty(geom_params, "material_ids", tsi);
+        m_mids_param = AbcGeom::OInt32ArrayProperty(geom_params, mqabcMaterialIDPropName, tsi);
     }
     m_recording = true;
 

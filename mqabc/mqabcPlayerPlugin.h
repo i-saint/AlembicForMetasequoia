@@ -174,6 +174,11 @@ private:
         mqabcMesh mesh;
         XformNode* parent_xform = nullptr;
         size_t sample_count = 0;
+
+        AbcGeom::IC3fGeomParam rgb_param;
+        AbcGeom::IC4fGeomParam rgba_param;
+        AbcGeom::IInt32ArrayProperty mids_prop;
+        RawVector<float3> tmp_rgb;
     };
 
     void ConstructTree(Node *n);
