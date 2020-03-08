@@ -25,6 +25,8 @@ void mqabcMesh::resize(int npoints, int nindices, int nfaces)
 
 void mqabcMesh::transform(const float4x4 v)
 {
+    if (v == float4x4::identity())
+        return;
     mu::MulPoints(v, points.cdata(), points.data(), points.size());
     mu::MulVectors(v, normals.cdata(), normals.data(), normals.size());
 }

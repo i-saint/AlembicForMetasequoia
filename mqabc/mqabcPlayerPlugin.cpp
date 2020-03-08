@@ -315,6 +315,9 @@ bool mqabcPlayerPlugin::OpenABC(const std::string& path)
 
         m_top_node = new TopNode(m_archive.getTop());
         ConstructTree(m_top_node);
+
+        for (auto mesh : m_mesh_nodes)
+            m_sample_count = std::max(m_sample_count, (int64_t)mesh->sample_count);
     }
     catch (Alembic::Util::Exception e)
     {
@@ -337,6 +340,8 @@ bool mqabcPlayerPlugin::CloseABC()
     m_archive.reset();
     m_stream.close();
     m_abc_path.clear();
+
+    m_sample_count = m_sample_index = 0;
 
     return true;
 }
@@ -366,21 +371,21 @@ void mqabcPlayerPlugin::ConstructTree(Node* n)
     }
 }
 
-void mqabcPlayerPlugin::Seek(double time)
+void mqabcPlayerPlugin::Seek(int64_t i)
 {
     if (!m_archive)
         return;
 
-    m_time = time;
+    m_sample_index = i;
     Execute(&mqabcPlayerPlugin::DoSeek);
 }
 
 bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
 {
     // read abc
-    m_top_node->update(m_time);
-    mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [](MeshNode* n) {
-        n->applyTransform();
+    m_top_node->update(m_sample_index);
+    mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [this](MeshNode* n) {
+        n->applyScaleAndTransform(m_scale_factor);
     });
 
     // build merged mesh
@@ -416,9 +421,9 @@ bool mqabcPlayerPlugin::IsArchiveOpened() const
     return m_archive;
 }
 
-std::tuple<double, double> mqabcPlayerPlugin::GetTimeRange() const
+int64_t mqabcPlayerPlugin::GetSampleCount() const
 {
-    return std::make_tuple(m_time_start, m_time_end);
+    return m_sample_count;
 }
 
 void mqabcPlayerPlugin::LogInfo(const char *message)

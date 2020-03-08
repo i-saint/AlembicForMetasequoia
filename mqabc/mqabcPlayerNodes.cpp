@@ -20,10 +20,10 @@ mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::Node::getType() const
     return Type::Unknown;
 }
 
-void mqabcPlayerPlugin::Node::update(abcChrono time)
+void mqabcPlayerPlugin::Node::update(int64_t si)
 {
     for (auto child : children)
-        child->update(time);
+        child->update(si);
 }
 
 template<class NodeT>
@@ -61,9 +61,9 @@ mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::XformNode::getType() const
     return Type::Xform;
 }
 
-void mqabcPlayerPlugin::XformNode::update(abcChrono time)
+void mqabcPlayerPlugin::XformNode::update(int64_t si)
 {
-    Abc::ISampleSelector iss(time);
+    Abc::ISampleSelector iss(si);
     AbcGeom::XformSample sample;
     schema.get(sample, iss);
 
@@ -75,7 +75,7 @@ void mqabcPlayerPlugin::XformNode::update(abcChrono time)
     else
         global_matrix = local_matrix;
 
-    super::update(time);
+    super::update(si);
 }
 
 
@@ -85,6 +85,7 @@ mqabcPlayerPlugin::MeshNode::MeshNode(Node* p, Abc::IObject abc)
     auto so = AbcGeom::IPolyMesh(abc, Abc::kWrapExisting);
     schema = so.getSchema();
     parent_xform = findParent<XformNode>();
+    sample_count = schema.getNumSamples();
 
     auto geom_params = schema.getArbGeomParams();
 }
@@ -95,9 +96,9 @@ mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::MeshNode::getType() const
 }
 
 
-void mqabcPlayerPlugin::MeshNode::update(abcChrono time)
+void mqabcPlayerPlugin::MeshNode::update(int64_t si)
 {
-    Abc::ISampleSelector iss(time);
+    Abc::ISampleSelector iss(si);
 
     mesh.clear();
 
@@ -144,11 +145,12 @@ void mqabcPlayerPlugin::MeshNode::update(abcChrono time)
 
     mesh.clearInvalidComponent();
 
-    super::update(time);
+    super::update(si);
 }
 
-void mqabcPlayerPlugin::MeshNode::applyTransform()
+void mqabcPlayerPlugin::MeshNode::applyScaleAndTransform(float scale)
 {
+    mu::Scale(mesh.points.data(), scale, mesh.points.size());
     if (parent_xform)
         mesh.transform(parent_xform->global_matrix);
 }

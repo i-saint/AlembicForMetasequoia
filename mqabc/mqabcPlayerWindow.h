@@ -10,8 +10,8 @@ public:
 
     BOOL OnHide(MQWidgetBase* sender, MQDocument doc);
     BOOL OnOpenClicked(MQWidgetBase* sender, MQDocument doc);
-    BOOL OnTimeEdit(MQWidgetBase* sender, MQDocument doc);
-    BOOL OnTimeSlide(MQWidgetBase* sender, MQDocument doc);
+    BOOL OnSampleEdit(MQWidgetBase* sender, MQDocument doc);
+    BOOL OnSampleSlide(MQWidgetBase* sender, MQDocument doc);
 
     void LogInfo(const char *message);
 
@@ -20,8 +20,8 @@ private:
 
     MQFrame* m_frame_open = nullptr;
     MQFrame* m_frame_time = nullptr;
-    MQEdit* m_edit_time = nullptr;
-    MQSlider* m_slider_time = nullptr;
+    MQEdit* m_edit_sample = nullptr;
+    MQSlider* m_slider_sample = nullptr;
     MQButton* m_button_open = nullptr;
     MQMemo* m_log = nullptr;
 };

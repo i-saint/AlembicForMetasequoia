@@ -36,14 +36,13 @@ mqabcPlayerWindow::mqabcPlayerWindow(mqabcPlayerPlugin* plugin, MQWindowBase& pa
         MQFrame* hf = CreateHorizontalFrame(vf);
         CreateLabel(hf, L"Capture Interval (second):");
 
-        m_edit_time = CreateEdit(hf);
-        m_edit_time->SetNumeric(MQEdit::NUMERIC_DOUBLE);
-        m_edit_time->AddChangedEvent(this, &mqabcPlayerWindow::OnTimeEdit);
+        m_edit_sample = CreateEdit(hf);
+        m_edit_sample->SetNumeric(MQEdit::NUMERIC_INT);
+        m_edit_sample->SetText(L"0");
+        m_edit_sample->AddChangedEvent(this, &mqabcPlayerWindow::OnSampleEdit);
 
-        m_slider_time = CreateSlider(vf);
-        m_slider_time->SetMin(0.0f);
-        m_slider_time->SetMax(100.0f);
-        m_slider_time->AddChangedEvent(this, &mqabcPlayerWindow::OnTimeSlide);
+        m_slider_sample = CreateSlider(vf);
+        m_slider_sample->AddChangingEvent(this, &mqabcPlayerWindow::OnSampleSlide);
     }
 
     {
@@ -80,8 +79,13 @@ BOOL mqabcPlayerWindow::OnOpenClicked(MQWidgetBase* sender, MQDocument doc)
         if (dlg.Execute()) {
             auto path = dlg.GetFileName();
             if (m_plugin->OpenABC(mu::ToMBS(path))) {
+                m_slider_sample->SetMin(0);
+                m_slider_sample->SetMax((double)m_plugin->GetSampleCount());
+                m_slider_sample->SetPosition(0);
+
                 m_frame_open->SetVisible(false);
                 m_frame_time->SetVisible(true);
+                m_plugin->Seek(0);
             }
         }
     }
@@ -91,23 +95,23 @@ BOOL mqabcPlayerWindow::OnOpenClicked(MQWidgetBase* sender, MQDocument doc)
     return 0;
 }
 
-BOOL mqabcPlayerWindow::OnTimeEdit(MQWidgetBase* sender, MQDocument doc)
+BOOL mqabcPlayerWindow::OnSampleEdit(MQWidgetBase* sender, MQDocument doc)
 {
-    auto str = mu::ToMBS(m_edit_time->GetText());
-    auto value = std::atof(str.c_str());
-    m_slider_time->SetPosition(value);
+    auto str = mu::ToMBS(m_edit_sample->GetText());
+    auto value = std::atoi(str.c_str());
+    m_slider_sample->SetPosition(value);
 
     m_plugin->Seek(value);
     return 0;
 }
 
-BOOL mqabcPlayerWindow::OnTimeSlide(MQWidgetBase* sender, MQDocument doc)
+BOOL mqabcPlayerWindow::OnSampleSlide(MQWidgetBase* sender, MQDocument doc)
 {
     const size_t buf_len = 128;
     wchar_t buf[buf_len];
-    auto value = m_slider_time->GetPosition();
-    swprintf(buf, buf_len, L"%.2lf", value);
-    m_edit_time->SetText(buf);
+    auto value = (int)m_slider_sample->GetPosition();
+    swprintf(buf, buf_len, L"%d", (int)value);
+    m_edit_sample->SetText(buf);
 
     m_plugin->Seek(value);
     return 0;

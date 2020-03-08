@@ -87,10 +87,10 @@ public:
 
     bool OpenABC(const std::string& v);
     bool CloseABC();
-    void Seek(double time);
+    void Seek(int64_t i);
 
     bool IsArchiveOpened() const;
-    std::tuple<double, double> GetTimeRange() const;
+    int64_t GetSampleCount() const;
 
     void LogInfo(const char *message);
 
@@ -109,7 +109,7 @@ private:
         Node(Node *parent, Abc::IObject abc);
         virtual ~Node();
         virtual Type getType() const;
-        virtual void update(abcChrono time);
+        virtual void update(int64_t si);
 
         template<class NodeT> NodeT* findParent();
 
@@ -139,7 +139,7 @@ private:
 
         XformNode(Node* parent, Abc::IObject abc);
         Type getType() const override;
-        void update(abcChrono time) override;
+        void update(int64_t si) override;
 
         AbcGeom::IXformSchema schema;
         XformNode* parent_xform = nullptr;
@@ -156,13 +156,14 @@ private:
 
         MeshNode(Node* parent, Abc::IObject abc);
         Type getType() const override;
-        void update(abcChrono time) override;
+        void update(int64_t si) override;
 
-        void applyTransform();
+        void applyScaleAndTransform(float scale);
 
         AbcGeom::IPolyMeshSchema schema;
         mqabcMesh mesh;
         XformNode* parent_xform = nullptr;
+        size_t sample_count = 0;
     };
 
     void ConstructTree(Node *n);
@@ -175,9 +176,9 @@ private:
     std::fstream m_stream;
     Abc::IArchive m_archive;
 
-    abcChrono m_time_start = 0.0;
-    abcChrono m_time_end = 0.0;
-    abcChrono m_time = 0.0;
+    int64_t m_sample_count = 0;
+    int64_t m_sample_index = 0;
+    float m_scale_factor = 200.0f;
 
     std::vector<NodePtr> m_nodes;
     TopNode* m_top_node = nullptr;
