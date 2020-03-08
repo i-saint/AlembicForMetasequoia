@@ -20,20 +20,20 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mqabc\mqabc.cpp" />
-    <ClCompile Include="mqabc\mqabcRecorder.cpp" />
-    <ClCompile Include="mqabc\mqabcRecorderPlugin.cpp" />
-    <ClCompile Include="mqabc\mqabcRecorderWindow.cpp" />
     <ClCompile Include="mqabc\mqabcMesh.cpp" />
     <ClCompile Include="mqabc\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="mqabc\Recorder\mqabcRecorder.cpp" />
+    <ClCompile Include="mqabc\Recorder\mqabcRecorderPlugin.cpp" />
+    <ClCompile Include="mqabc\Recorder\mqabcRecorderWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mqabc\mqabc.h" />
-    <ClInclude Include="mqabc\mqabcRecorderPlugin.h" />
-    <ClInclude Include="mqabc\mqabcRecorderWindow.h" />
     <ClInclude Include="mqabc\mqabcMesh.h" />
     <ClInclude Include="mqabc\pch.h" />
+    <ClInclude Include="mqabc\Recorder\mqabcRecorderPlugin.h" />
+    <ClInclude Include="mqabc\Recorder\mqabcRecorderWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="MeshUtils.vcxproj">
@@ -70,7 +70,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(SolutionDir);$(MQ_SDK_DIR);$(SolutionDir)Externals\$(Platform)\Alembic\include;$(SolutionDir)Externals\$(Platform)\OpenEXR\include\OpenEXR;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir);$(SolutionDir)mqabc;$(MQ_SDK_DIR);$(SolutionDir)Externals\$(Platform)\Alembic\include;$(SolutionDir)Externals\$(Platform)\OpenEXR\include\OpenEXR;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)_out\$(Platform)_$(Configuration)\$(ProjectName)$(MQ_VERSION)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(Platform)_$(Configuration)\$(ProjectName)$(MQ_VERSION)\</IntDir>
     <LibraryPath>$(SolutionDir)Externals\$(Platform)\Alembic\lib;$(SolutionDir)Externals\$(Platform)\OpenEXR\lib;$(LibraryPath)</LibraryPath>

@@ -18,10 +18,10 @@
     <ClInclude Include="mqabc\mqabcMesh.h">
       <Filter>mqabc</Filter>
     </ClInclude>
-    <ClInclude Include="mqabc\mqabcPlayerPlugin.h">
+    <ClInclude Include="mqabc\Player\mqabcPlayerPlugin.h">
       <Filter>mqabc</Filter>
     </ClInclude>
-    <ClInclude Include="mqabc\mqabcPlayerWindow.h">
+    <ClInclude Include="mqabc\Player\mqabcPlayerWindow.h">
       <Filter>mqabc</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,13 +35,13 @@
     <ClCompile Include="mqabc\mqabcMesh.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
-    <ClCompile Include="mqabc\mqabcPlayerWindow.cpp">
+    <ClCompile Include="mqabc\Player\mqabcPlayerWindow.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
-    <ClCompile Include="mqabc\mqabcPlayerPlugin.cpp">
+    <ClCompile Include="mqabc\Player\mqabcPlayer.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
-    <ClCompile Include="mqabc\mqabcPlayer.cpp">
+    <ClCompile Include="mqabc\Player\mqabcPlayerPlugin.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
   </ItemGroup>
