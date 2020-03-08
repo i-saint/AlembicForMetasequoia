@@ -63,17 +63,19 @@ mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::XformNode::getType() const
 
 void mqabcPlayerPlugin::XformNode::update(int64_t si)
 {
-    Abc::ISampleSelector iss(si);
-    AbcGeom::XformSample sample;
-    schema.get(sample, iss);
+    if (schema.valid()) {
+        Abc::ISampleSelector iss(si);
+        AbcGeom::XformSample sample;
+        schema.get(sample, iss);
 
-    auto matd = sample.getMatrix();
-    local_matrix.assign((double4x4&)matd);
+        auto matd = sample.getMatrix();
+        local_matrix.assign((double4x4&)matd);
 
-    if (parent_xform)
-        global_matrix = local_matrix * parent_xform->global_matrix;
-    else
-        global_matrix = local_matrix;
+        if (parent_xform)
+            global_matrix = local_matrix * parent_xform->global_matrix;
+        else
+            global_matrix = local_matrix;
+    }
 
     super::update(si);
 }
@@ -117,23 +119,29 @@ mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::MeshNode::getType() const
 
 void mqabcPlayerPlugin::MeshNode::update(int64_t si)
 {
-    Abc::ISampleSelector iss(si);
+    updateMeshData(si);
+    super::update(si);
+}
 
+void mqabcPlayerPlugin::MeshNode::updateMeshData(int64_t si)
+{
     mesh.clear();
 
-    {
-        AbcGeom::IPolyMeshSchema::Sample sample;
-        schema.get(sample, iss);
+    Abc::ISampleSelector iss(si);
+    AbcGeom::IPolyMeshSchema::Sample sample;
+    schema.get(sample, iss);
+    if (!sample.valid())
+        return;
 
-        auto counts = sample.getFaceCounts();
-        mesh.counts.assign(counts->get(), counts->size());
+    auto counts = sample.getFaceCounts();
+    mesh.counts.assign(counts->get(), counts->size());
 
-        auto indices = sample.getFaceIndices();
-        mesh.indices.assign(indices->get(), indices->size());
+    auto indices = sample.getFaceIndices();
+    mesh.indices.assign(indices->get(), indices->size());
 
-        auto points = sample.getPositions();
-        mesh.points.assign((float3*)points->get(), points->size());
-    }
+    auto points = sample.getPositions();
+    mesh.points.assign((float3*)points->get(), points->size());
+
 
     auto get_index_params = [this, iss](auto& abcparam, auto& dst) -> bool {
         if (!abcparam.valid() || abcparam.getNumSamples() == 0)
@@ -193,8 +201,6 @@ void mqabcPlayerPlugin::MeshNode::update(int64_t si)
 
     // validate
     mesh.clearInvalidComponent();
-
-    super::update(si);
 }
 
 void mqabcPlayerPlugin::MeshNode::convert(const mqabcPlayerSettings& settings)
@@ -262,7 +268,12 @@ bool mqabcPlayerPlugin::OpenABC(const std::string& path)
     }
     catch (Alembic::Util::Exception e)
     {
-        //LogInfo("Failed (%s)", e.what());
+        LogInfo(
+            "failed to open %s\n"
+            "it may not alembic file or not in Ogawa format\n"
+            "(HDF5 format is not supported)"
+            , path.c_str());
+
         CloseABC();
         return false;
     }
@@ -413,6 +424,22 @@ bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
 
     // material ids
     if (!data.material_ids.empty()) {
+        int mid_min = 0;
+        int mid_max = 0;
+        mu::MinMax(data.material_ids.cdata(), data.material_ids.size(), mid_min, mid_max);
+
+        int mi = 0;
+        while (doc->GetMaterialCount() <= mid_max) {
+            const size_t buf_len = 128;
+            wchar_t buf[buf_len];
+            swprintf(buf, buf_len, L"abcmat%d", mi++);
+
+            auto mat = MQ_CreateMaterial();
+            mat->SetName(buf);
+
+            doc->AddMaterial(mat);
+        }
+
         auto* material_ids = data.material_ids.cdata();
         for (int fi = 0; fi < nfaces; ++fi)
             obj->SetFaceMaterial(fi, material_ids[fi]);

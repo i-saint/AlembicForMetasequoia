@@ -92,7 +92,7 @@ public:
     // コールバックに対する実装部
     bool ExecuteCallback(MQDocument doc, void *option) override;
 
-    void LogInfo(const char *message);
+    void LogInfo(const char* fmt, ...);
 
 
     bool OpenABC(const std::string& v);
@@ -179,6 +179,9 @@ private:
         AbcGeom::IC4fGeomParam rgba_param;
         AbcGeom::IInt32ArrayProperty mids_prop;
         RawVector<float3> tmp_rgb;
+
+    private:
+        void updateMeshData(int64_t si);
     };
 
     void ConstructTree(Node *n);

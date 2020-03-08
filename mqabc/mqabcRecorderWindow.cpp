@@ -215,5 +215,7 @@ void mqabcRecorderWindow::SyncSettings()
 
 void mqabcRecorderWindow::LogInfo(const char* message)
 {
-    // todo
+    if (m_log) {
+        m_log->SetText(mu::ToWCS(message));
+    }
 }

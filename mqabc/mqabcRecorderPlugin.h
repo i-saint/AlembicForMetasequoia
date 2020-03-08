@@ -98,7 +98,7 @@ public:
     // コールバックに対する実装部
     bool ExecuteCallback(MQDocument doc, void *option) override;
 
-    void LogInfo(const char* message);
+    void LogInfo(const char* fmt, ...);
 
 
     bool OpenABC(const std::string& v);
@@ -114,7 +114,7 @@ public:
     mqabcRecorderSettings& GetSettings();
 
     void MarkSceneDirty();
-    void Flush();
+    void CaptureFrame();
 
 #ifdef mqabcDebug
     void DbgDoSomething();
@@ -132,9 +132,9 @@ private:
         mqabcMesh mesh;
     };
 
-    bool CaptureFrame(MQDocument doc);
+    bool DoCaptureFrame(MQDocument doc);
     void ExtractMeshData(ObjectRecord& rec);
-    void FlushABC(abcChrono t);
+    void FlushABC();
     void WaitFlush();
 
 private:

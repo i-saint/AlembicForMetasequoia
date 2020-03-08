@@ -13,7 +13,7 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     }
     catch (Alembic::Util::Exception e)
     {
-        //LogInfo("Failed (%s)", e.what());
+        LogInfo("failed to open %s\nexception: %s", path.c_str(), e.what());
         return false;
     }
 
@@ -39,7 +39,12 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     if (m_settings.capture_material_ids) {
         m_mids_param = AbcGeom::OInt32ArrayProperty(geom_params, mqabcMaterialIDPropName, tsi);
     }
+    m_timeline.reserve(1024);
     m_recording = true;
+
+    CaptureFrame();
+
+    LogInfo("succeeded to open %s\nrecording started", m_abc_path.c_str());
 
     return true;
 }
@@ -68,6 +73,7 @@ bool mqabcRecorderPlugin::CloseABC()
     m_abc_path.clear();
     m_recording = false;
 
+    LogInfo("recording finished");
     return true;
 }
 
@@ -114,7 +120,7 @@ void mqabcRecorderPlugin::MarkSceneDirty()
     m_dirty = true;
 }
 
-void mqabcRecorderPlugin::Flush()
+void mqabcRecorderPlugin::CaptureFrame()
 {
     if (!IsRecording() || !m_dirty)
         return;
@@ -128,10 +134,10 @@ void mqabcRecorderPlugin::Flush()
     if (m_start_time == 0)
         m_start_time = t;
 
-    Execute(&mqabcRecorderPlugin::CaptureFrame);
+    Execute(&mqabcRecorderPlugin::DoCaptureFrame);
 }
 
-bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
+bool mqabcRecorderPlugin::DoCaptureFrame(MQDocument doc)
 {
     WaitFlush();
 
@@ -170,9 +176,21 @@ bool mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
         ExtractMeshData(m_obj_records[oi]);
     });
 
-    // flush abc
     auto abctime = mu::NS2Sd(m_last_flush - m_start_time) * m_time_scale;
-    m_task_write = std::async(std::launch::async, [this, abctime]() { FlushABC(abctime); });
+    m_timeline.push_back(abctime);
+
+    // flush abc async
+    m_task_write = std::async(std::launch::async, [this, abctime]() { FlushABC(); });
+
+    // log
+    int total_vertices = 0;
+    int total_faces = 0;
+    for (auto& rec : m_obj_records) {
+        total_vertices += (int)rec.mesh.points.size();
+        total_faces += (int)rec.mesh.counts.size();
+    }
+    LogInfo("frame %d: %d vertices, %d faces",
+        (int)(m_timeline.size() - 1), total_vertices, total_faces);
 
     return true;
 }
@@ -245,7 +263,7 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)
     }
 }
 
-void mqabcRecorderPlugin::FlushABC(abcChrono t)
+void mqabcRecorderPlugin::FlushABC()
 {
     // make merged mesh
     m_mesh_merged.clear();
@@ -280,7 +298,6 @@ void mqabcRecorderPlugin::FlushABC(abcChrono t)
     }
 
     m_xform_node->getSchema().set(m_xform_sample);
-    m_timeline.push_back(t);
 }
 
 void mqabcRecorderPlugin::WaitFlush()

@@ -172,7 +172,7 @@ BOOL mqabcRecorderPlugin::OnSubCommand(MQDocument doc, int index)
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnDraw(MQDocument doc, MQScene scene, int width, int height)
 {
-    Flush();
+    CaptureFrame();
 }
 
 
@@ -300,10 +300,17 @@ void mqabcRecorderPlugin::Execute(ExecuteCallbackProc proc)
     BeginCallback(&info);
 }
 
-void mqabcRecorderPlugin::LogInfo(const char *message)
+void mqabcRecorderPlugin::LogInfo(const char* fmt, ...)
 {
-    if (m_window)
-        m_window->LogInfo(message);
+    if (m_window) {
+        char buf[1024 * 2];
+        va_list args;
+        va_start(args, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, args);
+        va_end(args);
+
+        m_window->LogInfo(buf);
+    }
 }
 
 MQBasePlugin* GetPluginClass()

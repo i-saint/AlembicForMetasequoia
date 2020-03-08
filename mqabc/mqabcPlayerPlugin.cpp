@@ -292,10 +292,17 @@ void mqabcPlayerPlugin::Execute(ExecuteCallbackProc proc)
     BeginCallback(&info);
 }
 
-void mqabcPlayerPlugin::LogInfo(const char *message)
+void mqabcPlayerPlugin::LogInfo(const char* fmt, ...)
 {
-    if (m_window)
-        m_window->LogInfo(message);
+    if (m_window) {
+        char buf[1024 * 2];
+        va_list args;
+        va_start(args, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, args);
+        va_end(args);
+
+        m_window->LogInfo(buf);
+    }
 }
 
 
