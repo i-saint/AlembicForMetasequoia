@@ -304,11 +304,6 @@ MQBasePlugin* GetPluginClass()
     return &g_plugin;
 }
 
-void msmqLogInfo(const char *message)
-{
-    g_plugin.LogInfo(message);
-}
-
 #ifdef _WIN32
 //---------------------------------------------------------------------------
 //  DllMain

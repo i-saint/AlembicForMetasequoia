@@ -116,8 +116,8 @@ void mqabcPlayerPlugin::MeshNode::update(int64_t si)
         mesh.points.assign((float3*)points->get(), points->size());
     }
 
-    auto get_param_type = [this, iss](auto& abcparam, auto& dst) {
-        if (abcparam.getNumSamples() == 0)
+    auto get_index_params = [this, iss](auto& abcparam, auto& dst) {
+        if (!abcparam.valid() || abcparam.getNumSamples() == 0)
             return;
 
         using src_t = std::remove_reference_t<decltype(abcparam)>::value_type;
@@ -140,8 +140,8 @@ void mqabcPlayerPlugin::MeshNode::update(int64_t si)
         }
     };
 
-    get_param_type(schema.getNormalsParam(), mesh.normals);
-    get_param_type(schema.getUVsParam(), mesh.uvs);
+    get_index_params(schema.getNormalsParam(), mesh.normals);
+    get_index_params(schema.getUVsParam(), mesh.uvs);
     mu::InvertV(mesh.uvs.data(), mesh.uvs.size());
 
     mesh.clearInvalidComponent();
@@ -286,7 +286,7 @@ bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
     m_top_node->update(m_sample_index);
     mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [this](MeshNode* n) {
         n->convert(m_settings);
-        });
+    });
 
     // build merged mesh
     m_mesh_merged.clear();
@@ -307,21 +307,68 @@ bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
     }
     obj->Clear();
 
-    // add points
-    auto& data = m_mesh_merged;
-    for (auto& p : data.points)
-        obj->AddVertex((MQPoint&)p);
 
-    // add faces
+    auto& data = m_mesh_merged;
+    int nfaces = (int)data.counts.size();
+    int npoints = (int)data.points.size();
+    int nindices = (int)data.indices.size();
+
+    // points
     {
-        size_t ii = 0;
+        for (auto& p : data.points)
+            obj->AddVertex((MQPoint&)p);
+    }
+
+    // faces
+    {
+        int ii = 0;
+        auto* indices = (int*)data.indices.cdata();
         for (auto c : data.counts) {
-            obj->AddFace(c, &data.indices[ii]);
-            ii += c;
+            obj->AddFace(c, indices);
+            indices += c;
         }
     }
 
-    // todo
+    // uvs
+    if (!data.uvs.empty()) {
+        auto* uvs = (MQCoordinate*)data.uvs.cdata();
+        for (int fi = 0; fi < nfaces; ++fi) {
+            int c = data.counts[fi];
+            obj->SetFaceCoordinateArray(fi, uvs);
+            uvs += c;
+        }
+    }
+
+    // normals
+#if MQPLUGIN_VERSION >= 0x0460
+    if (!data.normals.empty()) {
+        auto* normals = (const MQPoint*)data.normals.cdata();
+        for (int fi = 0; fi < nfaces; ++fi) {
+            int c = data.counts[fi];
+            for (int ci = 0; ci < c; ++ci)
+                obj->SetFaceVertexNormal(fi, ci, MQOBJECT_NORMAL_NONE, normals[ci]);
+            normals += c;
+        }
+    }
+#endif
+
+    // colors
+    if (!data.colors.empty()) {
+        auto* colors = data.colors.cdata();
+        for (int fi = 0; fi < nfaces; ++fi) {
+            int c = data.counts[fi];
+            for (int ci = 0; ci < c; ++ci)
+                obj->SetFaceVertexColor(fi, ci, mu::Float4ToColor32(colors[ci]));
+            colors += c;
+        }
+    }
+
+    // material ids
+    if (!data.material_ids.empty()) {
+        auto* material_ids = data.material_ids.cdata();
+        for (int fi = 0; fi < nfaces; ++fi)
+            obj->SetFaceMaterial(fi, material_ids[fi]);
+    }
 
     return true;
 }
