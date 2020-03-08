@@ -92,6 +92,8 @@ public:
     // コールバックに対する実装部
     bool ExecuteCallback(MQDocument doc, void *option) override;
 
+    void LogInfo(const char *message);
+
 
     bool OpenABC(const std::string& v);
     bool CloseABC();
@@ -101,8 +103,6 @@ public:
     mqabcPlayerSettings& GetSettings();
     bool IsArchiveOpened() const;
     int64_t GetSampleCount() const;
-
-    void LogInfo(const char *message);
 
 private:
     class Node

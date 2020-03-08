@@ -180,3 +180,163 @@ void mqabcPlayerPlugin::MeshNode::convert(const mqabcPlayerSettings& settings)
         }
     }
 }
+
+
+
+bool mqabcPlayerPlugin::OpenABC(const std::string& path)
+{
+    try
+    {
+        // Abc::IArchive doesn't accept wide string path. so create file stream with wide string path and pass it.
+        // (VisualC++'s std::ifstream accepts wide string)
+        m_stream.reset(new std::fstream());
+#ifdef WIN32
+        auto wpath = mu::ToWCS(path);
+        m_stream->open(wpath.c_str(), std::ios::in | std::ios::binary);
+#else
+        m_stream->open(path.c_str(), std::ios::in | std::ios::binary);
+#endif
+        if (!m_stream->is_open()) {
+            CloseABC();
+            return false;
+        }
+
+        std::vector< std::istream*> streams{ m_stream.get() };
+        Alembic::AbcCoreOgawa::ReadArchive archive_reader(streams);
+        m_archive = Abc::IArchive(archive_reader(path), Abc::kWrapExisting, Abc::ErrorHandler::kThrowPolicy);
+        m_abc_path = path;
+
+        m_top_node = new TopNode(m_archive.getTop());
+        ConstructTree(m_top_node);
+
+        for (auto mesh : m_mesh_nodes)
+            m_sample_count = std::max(m_sample_count, (int64_t)mesh->sample_count);
+    }
+    catch (Alembic::Util::Exception e)
+    {
+        //LogInfo("Failed (%s)", e.what());
+        CloseABC();
+        return false;
+    }
+
+    return true;
+}
+
+bool mqabcPlayerPlugin::CloseABC()
+{
+    m_top_node = nullptr;
+    m_mesh_nodes.clear();
+    m_nodes.clear();
+
+    m_archive.reset();
+    m_stream.reset();
+    m_abc_path.clear();
+
+    m_sample_count = m_sample_index = 0;
+    m_mqobj_id = 0;
+
+    return true;
+}
+
+void mqabcPlayerPlugin::ConstructTree(Node* n)
+{
+    m_nodes.push_back(NodePtr(n));
+
+    auto& abc = n->abcobj;
+    size_t nchildren = abc.getNumChildren();
+    for (size_t ci = 0; ci < nchildren; ++ci) {
+        auto cabc = abc.getChild(ci);
+
+        const auto& metadata = cabc.getMetaData();
+        Node* c = nullptr;
+        if (AbcGeom::IXformSchema::matches(metadata)) {
+            c = new XformNode(n, cabc);
+        }
+        else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
+            c = new MeshNode(n, cabc);
+            m_mesh_nodes.push_back((MeshNode*)c);
+        }
+        else {
+            c = new Node(n, cabc);
+        }
+        ConstructTree(c);
+    }
+}
+
+void mqabcPlayerPlugin::Seek(int64_t i)
+{
+    if (!m_archive)
+        return;
+
+    m_sample_index = i;
+    Execute(&mqabcPlayerPlugin::DoSeek);
+}
+
+void mqabcPlayerPlugin::Refresh()
+{
+    if (!m_archive)
+        return;
+
+    Execute(&mqabcPlayerPlugin::DoSeek);
+}
+
+bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
+{
+    // read abc
+    m_top_node->update(m_sample_index);
+    mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [this](MeshNode* n) {
+        n->convert(m_settings);
+        });
+
+    // build merged mesh
+    m_mesh_merged.clear();
+    for (auto n : m_mesh_nodes)
+        m_mesh_merged.merge(n->mesh);
+    m_mesh_merged.clearInvalidComponent();
+
+
+    // update mq object
+    auto obj = doc->GetObjectFromUniqueID(m_mqobj_id);
+    if (!obj) {
+        obj = MQ_CreateObject();
+        doc->AddObject(obj);
+        m_mqobj_id = obj->GetUniqueID();
+
+        auto name = mu::GetFilename_NoExtension(m_abc_path.c_str());
+        obj->SetName(name.c_str());
+    }
+    obj->Clear();
+
+    // add points
+    auto& data = m_mesh_merged;
+    for (auto& p : data.points)
+        obj->AddVertex((MQPoint&)p);
+
+    // add faces
+    {
+        size_t ii = 0;
+        for (auto c : data.counts) {
+            obj->AddFace(c, &data.indices[ii]);
+            ii += c;
+        }
+    }
+
+    // todo
+
+    return true;
+}
+
+mqabcPlayerSettings& mqabcPlayerPlugin::GetSettings()
+{
+    return m_settings;
+}
+
+bool mqabcPlayerPlugin::IsArchiveOpened() const
+{
+    return m_archive;
+}
+
+int64_t mqabcPlayerPlugin::GetSampleCount() const
+{
+    return m_sample_count;
+}

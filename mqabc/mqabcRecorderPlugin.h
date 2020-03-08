@@ -98,6 +98,8 @@ public:
     // コールバックに対する実装部
     bool ExecuteCallback(MQDocument doc, void *option) override;
 
+    void LogInfo(const char* message);
+
 
     bool OpenABC(const std::string& v);
     bool CloseABC();
@@ -111,7 +113,6 @@ public:
     double GetInterval() const;
     mqabcRecorderSettings& GetSettings();
 
-    void LogInfo(const char *message);
     void MarkSceneDirty();
     void Flush();
 

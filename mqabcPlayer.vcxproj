@@ -20,7 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mqabc\mqabc.cpp" />
-    <ClCompile Include="mqabc\mqabcPlayerNodes.cpp" />
+    <ClCompile Include="mqabc\mqabcPlayer.cpp" />
     <ClCompile Include="mqabc\mqabcPlayerPlugin.cpp" />
     <ClCompile Include="mqabc\mqabcPlayerWindow.cpp" />
     <ClCompile Include="mqabc\mqabcMesh.cpp" />

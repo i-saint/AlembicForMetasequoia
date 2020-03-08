@@ -41,7 +41,7 @@
     <ClCompile Include="mqabc\mqabcPlayerPlugin.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
-    <ClCompile Include="mqabc\mqabcPlayerNodes.cpp">
+    <ClCompile Include="mqabc\mqabcPlayer.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
   </ItemGroup>

@@ -41,5 +41,8 @@
     <ClCompile Include="mqabc\mqabcRecorderWindow.cpp">
       <Filter>mqabc</Filter>
     </ClCompile>
+    <ClCompile Include="mqabc\mqabcRecorder.cpp">
+      <Filter>mqabc</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

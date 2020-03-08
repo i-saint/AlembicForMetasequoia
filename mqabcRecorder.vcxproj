@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mqabc\mqabc.cpp" />
+    <ClCompile Include="mqabc\mqabcRecorder.cpp" />
     <ClCompile Include="mqabc\mqabcRecorderPlugin.cpp" />
     <ClCompile Include="mqabc\mqabcRecorderWindow.cpp" />
     <ClCompile Include="mqabc\mqabcMesh.cpp" />
