@@ -9,6 +9,7 @@ struct mqabcRecorderSettings
     bool capture_normals = true;
     bool capture_colors = false;
     bool capture_material_ids = true;
+    bool capture_materials = true;
     bool freeze_mirror = true;
     bool freeze_lathe = true;
     bool freeze_subdiv = false;
@@ -133,9 +134,27 @@ private:
         mqabcMesh mesh;
     };
 
+    struct MaterialRecord
+    {
+        MQDocument mqdocument;
+        MQMaterial mqmaterial;
+
+        std::string name;
+        std::string shader;
+        bool use_vertex_color = false;
+        bool double_sided = false;
+        float3 color = float3::one();
+        float diffuse = 1.0f;
+        float alpha = 1.0f;
+        float3 ambient = float3::zero();
+        float3 specular = float3::zero();
+        float3 emission = float3::zero();
+    };
+
     void ExtractMeshData(ObjectRecord& rec);
     void FlushABC();
     void WaitFlush();
+    void WriteMaterials();
 
 private:
     mqabcRecorderWindow* m_window = nullptr;
@@ -168,5 +187,6 @@ private:
 
     mqabcMesh m_mesh_merged;
     std::vector<ObjectRecord> m_obj_records;
+    std::vector<MaterialRecord> m_material_records;
     std::future<void> m_task_write;
 };

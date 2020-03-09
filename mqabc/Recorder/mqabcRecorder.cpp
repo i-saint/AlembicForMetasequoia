@@ -40,6 +40,7 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
         m_mids_param = AbcGeom::OInt32ArrayProperty(geom_params, mqabcMaterialIDPropName, tsi);
     }
     m_timeline.reserve(1024);
+
     m_recording = true;
     m_dirty = true;
 
@@ -54,6 +55,9 @@ bool mqabcRecorderPlugin::CloseABC()
 
     WaitFlush();
 
+    if (m_settings.capture_materials) {
+        WriteMaterials();
+    }
     if (m_settings.keep_time) {
         auto ts = Abc::TimeSampling(Abc::TimeSamplingType(Abc::TimeSamplingType::kAcyclic), m_timeline);
         *m_archive.getTimeSampling(1) = ts;
@@ -70,6 +74,9 @@ bool mqabcRecorderPlugin::CloseABC()
     m_timeline.clear();
     m_abc_path.clear();
     m_recording = false;
+
+    m_obj_records.clear();
+    m_material_records.clear();
 
     LogInfo("recording finished");
     return true;
@@ -162,6 +169,41 @@ void mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
         else {
             rec.mqobject = obj;
         }
+    }
+
+    int nmaterials = doc->GetMaterialCount();
+    m_material_records.resize(nmaterials);
+    for (int mi = 0; mi < nmaterials; ++mi) {
+        auto& rec = m_material_records[mi];
+        rec.mqdocument = doc;
+
+        auto mtl = doc->GetMaterial(mi);
+        rec.mqmaterial = mtl;
+
+        char buf[256];
+        mtl->GetName(buf, sizeof(buf));
+        rec.name = buf;
+
+        switch (mtl->GetShader()) {
+#define Case(MQ, ABC) case MQ: rec.shader = ABC; break;
+        Case(MQMATERIAL_SHADER_CLASSIC, mqabcMtlShaderClassic)
+        Case(MQMATERIAL_SHADER_CONSTANT, mqabcMtlShaderConstant)
+        Case(MQMATERIAL_SHADER_LAMBERT, mqabcMtlShaderLambert)
+        Case(MQMATERIAL_SHADER_PHONG, mqabcMtlShaderPhong)
+        Case(MQMATERIAL_SHADER_BLINN, mqabcMtlShaderBlinn)
+        Case(MQMATERIAL_SHADER_HLSL, mqabcMtlShaderHLSL)
+#undef Case
+        }
+
+        rec.use_vertex_color = mtl->GetVertexColor() == MQMATERIAL_VERTEXCOLOR_DIFFUSE;
+        rec.double_sided = mtl->GetDoubleSided();
+
+        rec.color = (const float3&)mtl->GetColor();
+        rec.diffuse = mtl->GetDiffuse();
+        rec.alpha = mtl->GetAlpha();
+        rec.ambient = (const float3&)mtl->GetAmbientColor();
+        rec.specular = (const float3&)mtl->GetSpecularColor();
+        rec.emission = (const float3&)mtl->GetEmissionColor();
     }
 
     // extract mesh data
@@ -285,7 +327,7 @@ void mqabcRecorderPlugin::FlushABC()
         m_colors_param.set(m_sample_colors);
     }
     if (m_settings.capture_material_ids) {
-        m_mids_param.set(AbcGeom::Int32ArraySample(data.material_ids.cdata(), data.material_ids.size()));
+        m_mids_param.set(Abc::Int32ArraySample(data.material_ids.cdata(), data.material_ids.size()));
     }
 
     m_xform_node->getSchema().set(m_xform_sample);
@@ -309,3 +351,38 @@ void mqabcRecorderPlugin::WaitFlush()
 
 }
 
+void mqabcRecorderPlugin::WriteMaterials()
+{
+    if (m_material_records.empty())
+        return;
+
+    try {
+        auto mtl_root = std::make_shared<Abc::OObject>(*m_root_node, "MQMaterials", 1);
+        for (auto& rec : m_material_records) {
+            auto node = std::make_shared<AbcMaterial::OMaterial>(*mtl_root, rec.name, 1);
+            auto schema = node->getSchema();
+            auto props = schema.getShaderParameters(mqabcMtlTarget, rec.shader);
+
+            auto vertex_color = Abc::OBoolProperty(props, mqabcMtlUseVertexColor, 1);
+            auto double_sided = Abc::OBoolProperty(props, mqabcMtlDoubleSided, 1);
+            auto color = Abc::OC3fProperty(props, mqabcMtlDiffuseColor, 1);
+            auto diffuse = Abc::OFloatProperty(props, mqabcMtlDiffuse, 1);
+            auto alpha = Abc::OFloatProperty(props, mqabcMtlAlpha, 1);
+            auto ambient = Abc::OC3fProperty(props, mqabcMtlAmbientColor, 1);
+            auto specular = Abc::OC3fProperty(props, mqabcMtlSpecularColor, 1);
+            auto emission = Abc::OC3fProperty(props, mqabcMtlEmissionColor, 1);
+
+            vertex_color.set(rec.use_vertex_color);
+            double_sided.set(rec.double_sided);
+            color.set((abcC3&)rec.color);
+            diffuse.set(rec.diffuse);
+            alpha.set(rec.alpha);
+            ambient.set((abcC3&)rec.ambient);
+            specular.set((abcC3&)rec.specular);
+            emission.set((abcC3&)rec.emission);
+        }
+    }
+    catch (...) {
+
+    }
+}

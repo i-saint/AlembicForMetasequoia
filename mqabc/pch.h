@@ -32,5 +32,6 @@
 #include <Alembic/AbcCoreOgawa/All.h>
 #include <Alembic/Abc/ErrorHandler.h>
 #include <Alembic/AbcGeom/All.h>
+#include <Alembic/AbcMaterial/All.h>
 
 #include "mqsdk/sdk_Include.h"

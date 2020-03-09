@@ -27,7 +27,7 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
             CreateLabel(hf, L"Scale Factor");
             m_edit_scale = CreateEdit(hf);
             m_edit_scale->SetNumeric(MQEdit::NUMERIC_DOUBLE);
-            m_edit_scale->AddChangedEvent(this, &mqabcRecorderWindow::OnScaleChange);
+            m_edit_scale->AddChangedEvent(this, &mqabcRecorderWindow::OnSettingsUpdate);
         }
 
         m_check_normals = CreateCheckBox(vf, L"Capture Normals");
@@ -56,7 +56,7 @@ mqabcRecorderWindow::mqabcRecorderWindow(mqabcRecorderPlugin* plugin, MQWindowBa
 
         {
             MQFrame* hf = CreateHorizontalFrame(vf);
-            CreateLabel(hf, L"Capture Interval (second):");
+            CreateLabel(hf, L"Capture Interval (second)");
 
             m_edit_interval = CreateEdit(hf);
             m_edit_interval->SetNumeric(MQEdit::NUMERIC_DOUBLE);
@@ -116,20 +116,15 @@ BOOL mqabcRecorderWindow::OnIntervalChange(MQWidgetBase* sender, MQDocument doc)
     return 0;
 }
 
-BOOL mqabcRecorderWindow::OnScaleChange(MQWidgetBase* sender, MQDocument doc)
-{
-    auto str = mu::ToMBS(m_edit_scale->GetText());
-    auto value = std::atof(str.c_str());
-    if (value != 0.0) {
-        auto& settings = m_plugin->GetSettings();
-        settings.scale_factor = (float)value;
-    }
-    return 0;
-}
-
 BOOL mqabcRecorderWindow::OnSettingsUpdate(MQWidgetBase* sender, MQDocument doc)
 {
     auto& settings = m_plugin->GetSettings();
+    {
+        auto str = mu::ToMBS(m_edit_scale->GetText());
+        auto value = std::atof(str.c_str());
+        if (value != 0.0)
+            settings.scale_factor = (float)value;
+    }
     settings.freeze_mirror = m_check_mirror->GetChecked();
     settings.freeze_lathe = m_check_lathe->GetChecked();
     settings.freeze_subdiv = m_check_subdiv->GetChecked();
