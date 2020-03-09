@@ -143,12 +143,12 @@ void mqabcPlayerPlugin::MeshNode::updateMeshData(int64_t si)
     mesh.points.assign((float3*)points->get(), points->size());
 
 
-    auto get_index_params = [this, iss](auto& abcparam, auto& dst) -> bool {
+    auto get_index_params = [this, iss](auto abcparam, auto& dst) -> bool {
         if (!abcparam.valid() || abcparam.getNumSamples() == 0)
             return false;
 
-        using src_t = std::remove_reference_t<decltype(abcparam)>::value_type;
-        using dst_t = std::remove_reference_t<decltype(dst)>::value_type;
+        using src_t = typename std::remove_reference_t<decltype(abcparam)>::value_type;
+        using dst_t = typename std::remove_reference_t<decltype(dst)>::value_type;
         static_assert(sizeof(src_t) == sizeof(dst_t), "data size mismatch");
 
         auto sample = abcparam.getExpandedValue(iss);

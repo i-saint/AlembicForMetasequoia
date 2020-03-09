@@ -1,6 +1,4 @@
 set(MeshUtils_dir "${CMAKE_CURRENT_SOURCE_DIR}")
-option(ENABLE_TBB "Use Intel TBB." OFF)
-
 project(MeshUtils)
 
 if(ENABLE_ISPC)
@@ -24,11 +22,4 @@ target_precompile_headers(MeshUtils PRIVATE "${MeshUtils_dir}/pch.h")
 
 if(ENABLE_ISPC)
     target_include_directories(MeshUtils PUBLIC ${MUISPC_OUTDIR})
-endif()
-
-if(ENABLE_TBB)
-    find_package(TBB QUIET)
-    add_definitions(-DmuEnableTBB)
-    include_directories(${TBB_INCLUDE_DIRS})
-    list(APPEND EXTERNAL_LIBS ${TBB_LIBRARIES})
 endif()

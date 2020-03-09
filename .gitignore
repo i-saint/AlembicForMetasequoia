@@ -21,3 +21,6 @@ _dist/
 _build_*/
 Externals/
 TestLocal/
+
+mqsdk*/
+mqabc4*/
