@@ -7,6 +7,7 @@ mqabcPlayerPlugin::Node::Node(Node* p, Abc::IObject abc)
     : parent(p)
     , abcobj(abc)
 {
+    name = abc.getName();
     if (parent)
         parent->children.push_back(this);
 }
@@ -51,7 +52,7 @@ mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::TopNode::getType() const
 mqabcPlayerPlugin::XformNode::XformNode(Node* p, Abc::IObject abc)
     : super(p, abc)
 {
-    auto so = AbcGeom::IXform(abc, Abc::kWrapExisting);
+    auto so = AbcGeom::IXform(abc);
     schema = so.getSchema();
     parent_xform = findParent<XformNode>();
 }
@@ -84,7 +85,7 @@ void mqabcPlayerPlugin::XformNode::update(int64_t si)
 mqabcPlayerPlugin::MeshNode::MeshNode(Node* p, Abc::IObject abc)
     : super(p, abc)
 {
-    auto so = AbcGeom::IPolyMesh(abc, Abc::kWrapExisting);
+    auto so = AbcGeom::IPolyMesh(abc);
     schema = so.getSchema();
     parent_xform = findParent<XformNode>();
     sample_count = schema.getNumSamples();
@@ -236,6 +237,54 @@ void mqabcPlayerPlugin::MeshNode::convert(const mqabcPlayerSettings& settings)
 }
 
 
+mqabcPlayerPlugin::MaterialNode::MaterialNode(Node* p, Abc::IObject abc)
+    : super(p, abc)
+{
+    auto so = AbcMaterial::IMaterial(abc);
+    schema = so.getSchema();
+
+    auto nnodes = schema.getNumNetworkNodes();
+    std::vector<std::string> shaders;
+    schema.getShaderTypesForTarget(mqabcMtlTarget, shaders);
+    if (!shaders.empty()) {
+        shader = shaders.front();
+        auto params = schema.getShaderParameters(mqabcMtlTarget, shader);
+
+        auto find_param = [this, &params](const char* name, auto& dst) -> bool {
+            using prop_t = typename std::remove_reference_t<decltype(dst)>;
+
+            size_t nprops = params.getNumProperties();
+            for (size_t pi = 0; pi < nprops; ++pi) {
+                auto& header = params.getPropertyHeader(pi);
+                if (prop_t::matches(header) && header.getName() == name) {
+                    dst = prop_t(params, header.getName());
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        find_param(mqabcMtlUseVertexColor, use_vertex_color);
+        find_param(mqabcMtlDoubleSided, double_sided);
+        find_param(mqabcMtlDiffuseColor, color);
+        find_param(mqabcMtlDiffuse, diffuse);
+        find_param(mqabcMtlAlpha, alpha);
+        find_param(mqabcMtlAmbientColor, ambient);
+        find_param(mqabcMtlSpecularColor, specular);
+        find_param(mqabcMtlEmissionColor, emission);
+    }
+}
+
+mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::MaterialNode::getType() const
+{
+    return Type::Material;
+}
+
+void mqabcPlayerPlugin::MaterialNode::update(int64_t si)
+{
+}
+
+
 
 bool mqabcPlayerPlugin::OpenABC(const std::string& path)
 {
@@ -312,6 +361,7 @@ bool mqabcPlayerPlugin::CloseABC()
 {
     m_top_node = nullptr;
     m_mesh_nodes.clear();
+    m_material_nodes.clear();
     m_nodes.clear();
 
     m_archive.reset();
@@ -341,6 +391,10 @@ void mqabcPlayerPlugin::ConstructTree(Node* n)
         else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
             c = new MeshNode(n, cabc);
             m_mesh_nodes.push_back((MeshNode*)c);
+        }
+        else if (AbcMaterial::IMaterialSchema::matches(metadata)) {
+            c = new MaterialNode(n, cabc);
+            m_material_nodes.push_back((MaterialNode*)c);
         }
         else {
             c = new Node(n, cabc);

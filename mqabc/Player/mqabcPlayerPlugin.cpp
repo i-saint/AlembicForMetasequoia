@@ -335,5 +335,3 @@ BOOL APIENTRY DllMain(HINSTANCE hInstance,
     return TRUE;
 }
 #endif
-
-

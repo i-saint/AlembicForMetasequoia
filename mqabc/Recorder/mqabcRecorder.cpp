@@ -361,6 +361,7 @@ void mqabcRecorderPlugin::WriteMaterials()
         for (auto& rec : m_material_records) {
             auto node = std::make_shared<AbcMaterial::OMaterial>(*mtl_root, rec.name, 1);
             auto schema = node->getSchema();
+            schema.setShader(mqabcMtlTarget, rec.shader, rec.name);
             auto props = schema.getShaderParameters(mqabcMtlTarget, rec.shader);
 
             auto vertex_color = Abc::OBoolProperty(props, mqabcMtlUseVertexColor, 1);

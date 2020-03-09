@@ -114,6 +114,7 @@ private:
             Top,
             Xform,
             PolyMesh,
+            Material,
         };
 
         Node(Node *parent, Abc::IObject abc);
@@ -126,6 +127,7 @@ private:
         Node* parent = nullptr;
         std::vector<Node*> children;
         Abc::IObject abcobj;
+        std::string name;
     };
     using NodePtr = std::shared_ptr<Node>;
 
@@ -184,6 +186,32 @@ private:
         void updateMeshData(int64_t si);
     };
 
+
+    class MaterialNode : public Node
+    {
+    using super = Node;
+    public:
+        static const Type node_type = Type::Material;
+
+        MaterialNode(Node* parent, Abc::IObject abc);
+        Type getType() const override;
+        void update(int64_t si) override;
+
+        AbcMaterial::IMaterialSchema schema;
+        std::string shader;
+        Abc::IBoolProperty use_vertex_color;
+        Abc::IBoolProperty double_sided;
+        Abc::IC3fProperty color;
+        Abc::IFloatProperty diffuse;
+        Abc::IFloatProperty alpha;
+        Abc::IC3fProperty ambient;
+        Abc::IC3fProperty specular;
+        Abc::IC3fProperty emission;
+
+    private:
+        void updateMeshData(int64_t si);
+    };
+
     void ConstructTree(Node *n);
     bool DoSeek(MQDocument doc);
 
@@ -200,6 +228,7 @@ private:
     std::vector<NodePtr> m_nodes;
     TopNode* m_top_node = nullptr;
     std::vector<MeshNode*> m_mesh_nodes;
+    std::vector<MaterialNode*> m_material_nodes;
 
     mqabcMesh m_mesh_merged;
     int m_mqobj_id = 0;
