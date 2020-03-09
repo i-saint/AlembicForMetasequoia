@@ -97,8 +97,8 @@ public:
 
     bool OpenABC(const std::string& v);
     bool CloseABC();
-    void Seek(int64_t i);
-    void Refresh();
+    void Seek(MQDocument doc, int64_t i);
+    void Refresh(MQDocument doc);
 
     mqabcPlayerSettings& GetSettings();
     bool IsArchiveOpened() const;

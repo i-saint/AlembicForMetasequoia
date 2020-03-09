@@ -41,8 +41,7 @@ bool mqabcRecorderPlugin::OpenABC(const std::string& path)
     }
     m_timeline.reserve(1024);
     m_recording = true;
-
-    CaptureFrame();
+    m_dirty = true;
 
     LogInfo("succeeded to open %s\nrecording started", m_abc_path.c_str());
     return true;
@@ -119,7 +118,7 @@ void mqabcRecorderPlugin::MarkSceneDirty()
     m_dirty = true;
 }
 
-void mqabcRecorderPlugin::CaptureFrame()
+void mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
 {
     if (!IsRecording() || !m_dirty)
         return;
@@ -133,11 +132,6 @@ void mqabcRecorderPlugin::CaptureFrame()
     if (m_start_time == 0)
         m_start_time = t;
 
-    Execute(&mqabcRecorderPlugin::DoCaptureFrame);
-}
-
-bool mqabcRecorderPlugin::DoCaptureFrame(MQDocument doc)
-{
     WaitFlush();
 
     // prepare
@@ -190,8 +184,6 @@ bool mqabcRecorderPlugin::DoCaptureFrame(MQDocument doc)
     }
     LogInfo("frame %d: %d vertices, %d faces",
         (int)(m_timeline.size() - 1), total_vertices, total_faces);
-
-    return true;
 }
 
 void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)

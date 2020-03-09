@@ -321,27 +321,15 @@ void mqabcPlayerPlugin::ConstructTree(Node* n)
     }
 }
 
-void mqabcPlayerPlugin::Seek(int64_t i)
+void mqabcPlayerPlugin::Seek(MQDocument doc, int64_t i)
 {
     if (!m_archive)
         return;
 
     m_sample_index = i;
-    Execute(&mqabcPlayerPlugin::DoSeek);
-}
 
-void mqabcPlayerPlugin::Refresh()
-{
-    if (!m_archive)
-        return;
-
-    Execute(&mqabcPlayerPlugin::DoSeek);
-}
-
-bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
-{
     // read abc
-    m_top_node->update(m_sample_index);
+    m_top_node->update(i);
     mu::parallel_for_each(m_mesh_nodes.begin(), m_mesh_nodes.end(), [this](MeshNode* n) {
         n->convert(m_settings);
     });
@@ -444,7 +432,13 @@ bool mqabcPlayerPlugin::DoSeek(MQDocument doc)
             obj->SetFaceMaterial(fi, material_ids[fi]);
     }
 
-    return true;
+    // repaint
+    MQ_RefreshView(nullptr);
+}
+
+void mqabcPlayerPlugin::Refresh(MQDocument doc)
+{
+    Seek(doc, m_sample_index);
 }
 
 mqabcPlayerSettings& mqabcPlayerPlugin::GetSettings()

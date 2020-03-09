@@ -172,7 +172,7 @@ BOOL mqabcRecorderPlugin::OnSubCommand(MQDocument doc, int index)
 //---------------------------------------------------------------------------
 void mqabcRecorderPlugin::OnDraw(MQDocument doc, MQScene scene, int width, int height)
 {
-    CaptureFrame();
+    CaptureFrame(doc);
 }
 
 

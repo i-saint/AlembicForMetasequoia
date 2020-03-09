@@ -161,7 +161,9 @@ BOOL mqabcRecorderWindow::OnRecordingClicked(MQWidgetBase* sender, MQDocument do
 
         if (dlg.Execute()) {
             auto path = dlg.GetFileName();
-            m_plugin->OpenABC(mu::ToMBS(path));
+            if (m_plugin->OpenABC(mu::ToMBS(path))) {
+                m_plugin->CaptureFrame(doc);
+            }
         }
     }
     else {

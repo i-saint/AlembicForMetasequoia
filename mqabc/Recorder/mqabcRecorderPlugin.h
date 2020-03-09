@@ -115,6 +115,7 @@ public:
 
     void MarkSceneDirty();
     void CaptureFrame();
+    void CaptureFrame(MQDocument doc);
 
 #ifdef mqabcDebug
     void DbgDoSomething();
@@ -132,7 +133,6 @@ private:
         mqabcMesh mesh;
     };
 
-    bool DoCaptureFrame(MQDocument doc);
     void ExtractMeshData(ObjectRecord& rec);
     void FlushABC();
     void WaitFlush();

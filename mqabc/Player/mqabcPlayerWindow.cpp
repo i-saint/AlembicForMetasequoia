@@ -112,7 +112,7 @@ BOOL mqabcPlayerWindow::OnOpenClicked(MQWidgetBase* sender, MQDocument doc)
 
                 m_frame_open->SetVisible(false);
                 m_frame_play->SetVisible(true);
-                m_plugin->Seek(0);
+                m_plugin->Seek(doc, 0);
             }
         }
     }
@@ -128,7 +128,7 @@ BOOL mqabcPlayerWindow::OnSampleEdit(MQWidgetBase* sender, MQDocument doc)
     auto value = std::atof(str.c_str());
     m_slider_sample->SetPosition(value);
 
-    m_plugin->Seek((int64_t)value);
+    m_plugin->Seek(doc, (int64_t)value);
     return 0;
 }
 
@@ -140,7 +140,7 @@ BOOL mqabcPlayerWindow::OnSampleSlide(MQWidgetBase* sender, MQDocument doc)
     swprintf(buf, buf_len, L"%d", (int)value);
     m_edit_sample->SetText(buf);
 
-    m_plugin->Seek((int64_t)value);
+    m_plugin->Seek(doc, (int64_t)value);
     return 0;
 }
 
@@ -161,7 +161,7 @@ BOOL mqabcPlayerWindow::OnSettingsUpdate(MQWidgetBase* sender, MQDocument doc)
     settings.flip_yz = m_check_flip_yz->GetChecked();
     settings.flip_faces = m_check_flip_faces->GetChecked();
 
-    m_plugin->Refresh();
+    m_plugin->Refresh(doc);
     return 0;
 }
 
