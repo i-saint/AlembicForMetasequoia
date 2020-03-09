@@ -258,24 +258,52 @@ bool mqabcPlayerPlugin::OpenABC(const std::string& path)
         std::vector< std::istream*> streams{ m_stream.get() };
         Alembic::AbcCoreOgawa::ReadArchive archive_reader(streams);
         m_archive = Abc::IArchive(archive_reader(path), Abc::kWrapExisting, Abc::ErrorHandler::kThrowPolicy);
-        m_abc_path = path;
-
-        m_top_node = new TopNode(m_archive.getTop());
-        ConstructTree(m_top_node);
-
-        for (auto mesh : m_mesh_nodes)
-            m_sample_count = std::max(m_sample_count, (int64_t)mesh->sample_count);
     }
     catch (Alembic::Util::Exception e)
     {
+        CloseABC();
+
+#ifdef mqabcEnableHDF5
+        try
+        {
+            m_archive = Abc::IArchive(AbcCoreHDF5::ReadArchive(), path);
+        }
+        catch (Alembic::Util::Exception e2)
+        {
+            CloseABC();
+            LogInfo(
+                "failed to open %s\n"
+                "it may not an alembic file"
+                , path.c_str());
+        }
+#else
         LogInfo(
             "failed to open %s\n"
-            "it may not alembic file or not in Ogawa format (HDF5 is not supported)"
+            "it may not an alembic file or not in Ogawa format (HDF5 is not supported)"
             , path.c_str());
-
-        CloseABC();
-        return false;
+#endif
     }
+
+    if (m_archive.valid()) {
+        try {
+            m_abc_path = path;
+            m_top_node = new TopNode(m_archive.getTop());
+            ConstructTree(m_top_node);
+
+            for (auto mesh : m_mesh_nodes)
+                m_sample_count = std::max(m_sample_count, (int64_t)mesh->sample_count);
+        }
+        catch (Alembic::Util::Exception e3) {
+            CloseABC();
+            LogInfo(
+                "failed to read %s\n"
+                "it seems an alembic file but probably broken"
+                , path.c_str());
+        }
+    }
+
+    if (!m_archive.valid())
+        return false;
 
     return true;
 }

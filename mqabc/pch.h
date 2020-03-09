@@ -27,9 +27,13 @@
 #include <fstream>
 #include <future>
 
+#define mqabcEnableHDF5
+
 #include <Alembic/AbcCoreAbstract/All.h>
-//#include <Alembic/AbcCoreHDF5/All.h>
 #include <Alembic/AbcCoreOgawa/All.h>
+#ifdef mqabcEnableHDF5
+    #include <Alembic/AbcCoreHDF5/All.h>
+#endif
 #include <Alembic/Abc/ErrorHandler.h>
 #include <Alembic/AbcGeom/All.h>
 #include <Alembic/AbcMaterial/All.h>
