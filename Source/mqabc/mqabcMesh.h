@@ -42,3 +42,5 @@ public:
     float3 specular_color = float3::one();
     float3 emission_color = float3::zero();
 };
+
+inline float3 to_float3(MQColor v) { return (float3&)v; };

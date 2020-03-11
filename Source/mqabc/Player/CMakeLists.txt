@@ -14,18 +14,13 @@ target_include_directories(${MQABC_PLAYER}
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/mqabc
         ${MQSDK_DIR}
-        ${ALEMBIC_INCLUDE_DIR}
-        ${OPENEXR_INCLUDE_DIRS}
+        ${ALEMBIC_INCLUDE_DIRS}
 )
 target_link_libraries(${MQABC_PLAYER}
     PRIVATE
         MeshUtils
         ${MQSDK}
-        ${ALEMBIC_LIBRARY}
-        ${OPENEXR_Half_LIBRARY}
-        ${OPENEXR_Iex_LIBRARY}
-        ${OPENEXR_IexMath_LIBRARY}
-        ${OPENEXR_Imath_LIBRARY}
+        ${ALEMBIC_LIBRARIES}
         ${COCOA_LIBRARY}
 )
 set(DIST_DIR "${CMAKE_INSTALL_PREFIX}/mqabc_${PLATFORM}")

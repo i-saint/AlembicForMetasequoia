@@ -188,12 +188,12 @@ void mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
         dst.shader = mtl->GetShader();
         dst.use_vertex_color = mtl->GetVertexColor() == MQMATERIAL_VERTEXCOLOR_DIFFUSE;
         dst.double_sided = mtl->GetDoubleSided();
-        dst.color = (const float3&)mtl->GetColor();
+        dst.color = to_float3(mtl->GetColor());
         dst.diffuse = mtl->GetDiffuse();
         dst.alpha = mtl->GetAlpha();
-        dst.ambient_color = (const float3&)mtl->GetAmbientColor();
-        dst.specular_color = (const float3&)mtl->GetSpecularColor();
-        dst.emission_color = (const float3&)mtl->GetEmissionColor();
+        dst.ambient_color = to_float3(mtl->GetAmbientColor());
+        dst.specular_color = to_float3(mtl->GetSpecularColor());
+        dst.emission_color = to_float3(mtl->GetEmissionColor());
     }
 
     // extract mesh data
