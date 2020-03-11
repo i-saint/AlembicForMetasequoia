@@ -206,34 +206,15 @@ void mqabcPlayerPlugin::MeshNode::updateMeshData(int64_t si)
 
 void mqabcPlayerPlugin::MeshNode::convert(const mqabcPlayerSettings& settings)
 {
-    if (parent_xform) {
-        mesh.transform(parent_xform->global_matrix);
-    }
-
-    if (settings.scale_factor != 1.0f) {
-        mu::Scale(mesh.points.data(), settings.scale_factor, mesh.points.size());
-    }
-    if (settings.flip_x) {
-        mu::InvertX(mesh.points.data(), mesh.points.size());
-        mu::InvertX(mesh.normals.data(), mesh.normals.size());
-    }
-    if (settings.flip_yz) {
-        auto convert = [this](auto& v) { return flip_z(swap_yz(v)); };
-
-        for (auto& v : mesh.points) v = convert(v);
-        for (auto& v : mesh.normals) v = convert(v);
-    }
-    if (settings.flip_faces) {
-        size_t nfaces = mesh.counts.size();
-        int* indices = mesh.indices.data();
-        int* counts = mesh.counts.data();
-        for (size_t fi = 0; fi < nfaces; ++fi) {
-            int c = *counts;
-            std::reverse(indices, indices + c);
-            indices += c;
-            ++counts;
-        }
-    }
+    if (parent_xform)
+        mesh.applyTransform(parent_xform->global_matrix);
+    mesh.applyScale(settings.scale_factor);
+    if (settings.flip_x)
+        mesh.flipX();
+    if (settings.flip_yz)
+        mesh.flipYZ();
+    if (settings.flip_faces)
+        mesh.flipFaces();
 }
 
 
@@ -243,35 +224,58 @@ mqabcPlayerPlugin::MaterialNode::MaterialNode(Node* p, Abc::IObject abc)
     auto so = AbcMaterial::IMaterial(abc);
     schema = so.getSchema();
 
-    auto nnodes = schema.getNumNetworkNodes();
+    // parse properties
     std::vector<std::string> shaders;
     schema.getShaderTypesForTarget(mqabcMtlTarget, shaders);
     if (!shaders.empty()) {
-        shader = shaders.front();
-        auto params = schema.getShaderParameters(mqabcMtlTarget, shader);
+        auto params = schema.getShaderParameters(mqabcMtlTarget, shaders.front());
 
         auto find_param = [this, &params](const char* name, auto& dst) -> bool {
             using prop_t = typename std::remove_reference_t<decltype(dst)>;
 
-            size_t nprops = params.getNumProperties();
-            for (size_t pi = 0; pi < nprops; ++pi) {
-                auto& header = params.getPropertyHeader(pi);
-                if (prop_t::matches(header) && header.getName() == name) {
-                    dst = prop_t(params, header.getName());
-                    return true;
-                }
+            auto header = params.getPropertyHeader(name);
+            if (header && prop_t::matches(*header)) {
+                dst = prop_t(params, header->getName());
+                return true;
             }
             return false;
         };
 
-        find_param(mqabcMtlUseVertexColor, use_vertex_color);
-        find_param(mqabcMtlDoubleSided, double_sided);
-        find_param(mqabcMtlDiffuseColor, color);
-        find_param(mqabcMtlDiffuse, diffuse);
-        find_param(mqabcMtlAlpha, alpha);
-        find_param(mqabcMtlAmbientColor, ambient);
-        find_param(mqabcMtlSpecularColor, specular);
-        find_param(mqabcMtlEmissionColor, emission);
+        find_param(mqabcMtlUseVertexColor, use_vertex_color_prop);
+        find_param(mqabcMtlDoubleSided, double_sided_prop);
+        find_param(mqabcMtlDiffuseColor, color_prop);
+        find_param(mqabcMtlDiffuse, diffuse_prop);
+        find_param(mqabcMtlAlpha, alpha_prop);
+        find_param(mqabcMtlAmbientColor, ambient_prop);
+        find_param(mqabcMtlSpecularColor, specular_prop);
+        find_param(mqabcMtlEmissionColor, emission_prop);
+    }
+
+    if (valid()) {
+        // assume all properties are constant and so get values at this point.
+
+        material.name = abc.getName();
+
+        const auto& shader = shaders.front();
+#define Case(MQ, ABC) if (shader == ABC) material.shader = MQ;
+        Case(MQMATERIAL_SHADER_CLASSIC, mqabcMtlShaderClassic)
+            Case(MQMATERIAL_SHADER_CONSTANT, mqabcMtlShaderConstant)
+            Case(MQMATERIAL_SHADER_LAMBERT, mqabcMtlShaderLambert)
+            Case(MQMATERIAL_SHADER_PHONG, mqabcMtlShaderPhong)
+            Case(MQMATERIAL_SHADER_BLINN, mqabcMtlShaderBlinn)
+            Case(MQMATERIAL_SHADER_HLSL, mqabcMtlShaderHLSL)
+#undef Case
+
+        Abc::ISampleSelector iss(int64_t(0));
+        static_assert(sizeof(bool) == sizeof(Abc::bool_t), "");
+        use_vertex_color_prop.get((Abc::bool_t&)material.use_vertex_color, iss);
+        double_sided_prop.get((Abc::bool_t&)material.double_sided, iss);
+        color_prop.get((abcC3&)material.color, iss);
+        diffuse_prop.get(material.diffuse, iss);
+        alpha_prop.get(material.alpha, iss);
+        ambient_prop.get((abcC3&)material.ambient_color, iss);
+        specular_prop.get((abcC3&)material.specular_color, iss);
+        emission_prop.get((abcC3&)material.emission_color, iss);
     }
 }
 
@@ -282,6 +286,20 @@ mqabcPlayerPlugin::Node::Type mqabcPlayerPlugin::MaterialNode::getType() const
 
 void mqabcPlayerPlugin::MaterialNode::update(int64_t si)
 {
+    // nothing to do for now
+}
+
+bool mqabcPlayerPlugin::MaterialNode::valid() const
+{
+    return
+        use_vertex_color_prop.valid() &&
+        double_sided_prop.valid();
+        color_prop.valid() &&
+        diffuse_prop.valid() &&
+        alpha_prop.valid() &&
+        ambient_prop.valid() &&
+        specular_prop.valid() &&
+        emission_prop.valid();
 }
 
 
@@ -389,17 +407,47 @@ void mqabcPlayerPlugin::ConstructTree(Node* n)
             c = new XformNode(n, cabc);
         }
         else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
-            c = new MeshNode(n, cabc);
-            m_mesh_nodes.push_back((MeshNode*)c);
+            auto mn = new MeshNode(n, cabc);
+            m_mesh_nodes.push_back(mn);
+            c = mn;
         }
         else if (AbcMaterial::IMaterialSchema::matches(metadata)) {
-            c = new MaterialNode(n, cabc);
-            m_material_nodes.push_back((MaterialNode*)c);
+            auto mn = new MaterialNode(n, cabc);
+            if (mn->valid())
+                m_material_nodes.push_back(mn);
+            c = mn;
         }
         else {
             c = new Node(n, cabc);
         }
         ConstructTree(c);
+    }
+}
+
+void mqabcPlayerPlugin::ImportMaterials(MQDocument doc)
+{
+    int nmaterials = (int)m_material_nodes.size();
+    for (int mi = 0; mi < nmaterials; ++mi) {
+        auto& src= m_material_nodes[mi]->material;
+        MQMaterial mqmat = nullptr;
+        if (mi < doc->GetMaterialCount()) {
+            mqmat = doc->GetMaterial(mi);
+            mqmat->SetName(src.name.c_str());
+        }
+        else {
+            mqmat = MQ_CreateMaterial();
+            mqmat->SetName(src.name.c_str());
+            doc->AddMaterial(mqmat);
+        }
+        mqmat->SetShader(src.shader);
+        mqmat->SetVertexColor(src.use_vertex_color ? MQMATERIAL_VERTEXCOLOR_DIFFUSE : MQMATERIAL_VERTEXCOLOR_DISABLE);
+        mqmat->SetDoubleSided(src.double_sided);
+        mqmat->SetColor((MQColor&)src.color);
+        mqmat->SetDiffuse(src.diffuse);
+        mqmat->SetAlpha(src.alpha);
+        mqmat->SetAmbientColor((MQColor&)src.ambient_color);
+        mqmat->SetSpecularColor((MQColor&)src.specular_color);
+        mqmat->SetEmissionColor((MQColor&)src.emission_color);
     }
 }
 
@@ -417,10 +465,27 @@ void mqabcPlayerPlugin::Seek(MQDocument doc, int64_t i)
     });
 
     // build merged mesh
-    m_mesh_merged.clear();
+    auto& mesh = m_mesh_merged;
+    mesh.clear();
     for (auto n : m_mesh_nodes)
-        m_mesh_merged.merge(n->mesh);
-    m_mesh_merged.clearInvalidComponent();
+        mesh.merge(n->mesh);
+    mesh.clearInvalidComponent();
+
+    // reserve materials
+    {
+        int mi = 0;
+        int nmaterials = mesh.getMaxMaterialID();
+        while (doc->GetMaterialCount() <= nmaterials) {
+            const size_t buf_len = 128;
+            wchar_t buf[buf_len];
+            swprintf(buf, buf_len, L"abcmat%d", mi++);
+
+            auto mat = MQ_CreateMaterial();
+            mat->SetName(buf);
+
+            doc->AddMaterial(mat);
+        }
+    }
 
 
     // update mq object
@@ -436,82 +501,63 @@ void mqabcPlayerPlugin::Seek(MQDocument doc, int64_t i)
     obj->Clear();
 
 
-    auto& data = m_mesh_merged;
-    int nfaces = (int)data.counts.size();
-    int npoints = (int)data.points.size();
-    int nindices = (int)data.indices.size();
+    int nfaces = (int)mesh.counts.size();
 
     // points
     {
-        for (auto& p : data.points)
+        for (auto& p : mesh.points)
             obj->AddVertex((MQPoint&)p);
     }
 
     // faces
     {
         int ii = 0;
-        auto* indices = (int*)data.indices.cdata();
-        for (auto c : data.counts) {
-            obj->AddFace(c, indices);
-            indices += c;
+        auto* data = (int*)mesh.indices.cdata();
+        for (auto c : mesh.counts) {
+            obj->AddFace(c, data);
+            data += c;
         }
     }
 
     // uvs
-    if (!data.uvs.empty()) {
-        auto* uvs = (MQCoordinate*)data.uvs.cdata();
+    if (!mesh.uvs.empty()) {
+        auto* data = (MQCoordinate*)mesh.uvs.cdata();
         for (int fi = 0; fi < nfaces; ++fi) {
-            int c = data.counts[fi];
-            obj->SetFaceCoordinateArray(fi, uvs);
-            uvs += c;
+            int c = mesh.counts[fi];
+            obj->SetFaceCoordinateArray(fi, data);
+            data += c;
         }
     }
 
     // normals
 #if MQPLUGIN_VERSION >= 0x0460
-    if (!data.normals.empty()) {
-        auto* normals = (const MQPoint*)data.normals.cdata();
+    if (!mesh.normals.empty()) {
+        auto* data = (const MQPoint*)mesh.normals.cdata();
         for (int fi = 0; fi < nfaces; ++fi) {
-            int c = data.counts[fi];
+            int c = mesh.counts[fi];
             for (int ci = 0; ci < c; ++ci)
-                obj->SetFaceVertexNormal(fi, ci, MQOBJECT_NORMAL_NONE, normals[ci]);
-            normals += c;
+                obj->SetFaceVertexNormal(fi, ci, MQOBJECT_NORMAL_NONE, data[ci]);
+            data += c;
         }
     }
 #endif
 
     // colors
-    if (!data.colors.empty()) {
-        auto* colors = data.colors.cdata();
+    if (!mesh.colors.empty()) {
+        auto* data = mesh.colors.cdata();
         for (int fi = 0; fi < nfaces; ++fi) {
-            int c = data.counts[fi];
+            int c = mesh.counts[fi];
             for (int ci = 0; ci < c; ++ci)
-                obj->SetFaceVertexColor(fi, ci, mu::Float4ToColor32(colors[ci]));
-            colors += c;
+                obj->SetFaceVertexColor(fi, ci, mu::Float4ToColor32(data[ci]));
+            data += c;
         }
     }
 
     // material ids
-    if (!data.material_ids.empty()) {
-        int mid_min = 0;
-        int mid_max = 0;
-        mu::MinMax(data.material_ids.cdata(), data.material_ids.size(), mid_min, mid_max);
-
-        int mi = 0;
-        while (doc->GetMaterialCount() <= mid_max) {
-            const size_t buf_len = 128;
-            wchar_t buf[buf_len];
-            swprintf(buf, buf_len, L"abcmat%d", mi++);
-
-            auto mat = MQ_CreateMaterial();
-            mat->SetName(buf);
-
-            doc->AddMaterial(mat);
-        }
-
-        auto* material_ids = data.material_ids.cdata();
+    if (!mesh.material_ids.empty()) {
+        auto* data = mesh.material_ids.cdata();
         for (int fi = 0; fi < nfaces; ++fi)
-            obj->SetFaceMaterial(fi, material_ids[fi]);
+            obj->SetFaceMaterial(fi, data[fi]);
     }
 
     // repaint

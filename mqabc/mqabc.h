@@ -19,14 +19,14 @@
 #define mqabcMtlShaderBlinn     "blinn"
 #define mqabcMtlShaderHLSL      "hlsl"
 
-#define mqabcMtlUseVertexColor  "useVertexColor"
-#define mqabcMtlDoubleSided     "doubleSided"
-#define mqabcMtlDiffuseColor    "diffuseColor"
-#define mqabcMtlDiffuse         "diffuse"
-#define mqabcMtlAlpha           "alpha"
-#define mqabcMtlAmbientColor    "ambientColor"
-#define mqabcMtlSpecularColor   "specularColor"
-#define mqabcMtlEmissionColor   "emissionColor"
+#define mqabcMtlUseVertexColor  ".useVertexColor"
+#define mqabcMtlDoubleSided     ".doubleSided"
+#define mqabcMtlDiffuseColor    ".diffuseColor"
+#define mqabcMtlDiffuse         ".diffuse"
+#define mqabcMtlAlpha           ".alpha"
+#define mqabcMtlAmbientColor    ".ambientColor"
+#define mqabcMtlSpecularColor   ".specularColor"
+#define mqabcMtlEmissionColor   ".emissionColor"
 
 #ifdef _WIN32
     #define mqabcAPI extern "C" __declspec(dllexport)

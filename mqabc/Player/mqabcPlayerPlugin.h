@@ -9,6 +9,7 @@ struct mqabcPlayerSettings
     bool flip_x = false;
     bool flip_yz = false;
     bool flip_faces = false;
+    bool import_materials = true;
 };
 
 class mqabcPlayerPlugin : public MQStationPlugin
@@ -97,6 +98,7 @@ public:
 
     bool OpenABC(const std::string& v);
     bool CloseABC();
+    void ImportMaterials(MQDocument doc);
     void Seek(MQDocument doc, int64_t i);
     void Refresh(MQDocument doc);
 
@@ -169,7 +171,6 @@ private:
         MeshNode(Node* parent, Abc::IObject abc);
         Type getType() const override;
         void update(int64_t si) override;
-
         void convert(const mqabcPlayerSettings& settings);
 
         AbcGeom::IPolyMeshSchema schema;
@@ -196,17 +197,19 @@ private:
         MaterialNode(Node* parent, Abc::IObject abc);
         Type getType() const override;
         void update(int64_t si) override;
+        bool valid() const;
 
         AbcMaterial::IMaterialSchema schema;
-        std::string shader;
-        Abc::IBoolProperty use_vertex_color;
-        Abc::IBoolProperty double_sided;
-        Abc::IC3fProperty color;
-        Abc::IFloatProperty diffuse;
-        Abc::IFloatProperty alpha;
-        Abc::IC3fProperty ambient;
-        Abc::IC3fProperty specular;
-        Abc::IC3fProperty emission;
+        Abc::IBoolProperty use_vertex_color_prop;
+        Abc::IBoolProperty double_sided_prop;
+        Abc::IC3fProperty color_prop;
+        Abc::IFloatProperty diffuse_prop;
+        Abc::IFloatProperty alpha_prop;
+        Abc::IC3fProperty ambient_prop;
+        Abc::IC3fProperty specular_prop;
+        Abc::IC3fProperty emission_prop;
+
+        mqabcMaterial material;
 
     private:
         void updateMeshData(int64_t si);

@@ -112,6 +112,10 @@ BOOL mqabcPlayerWindow::OnOpenClicked(MQWidgetBase* sender, MQDocument doc)
 
                 m_frame_open->SetVisible(false);
                 m_frame_play->SetVisible(true);
+
+                auto& settings = m_plugin->GetSettings();
+                if (settings.import_materials)
+                    m_plugin->ImportMaterials(doc);
                 m_plugin->Seek(doc, 0);
             }
         }

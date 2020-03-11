@@ -130,7 +130,6 @@ private:
         MQObject mqobject;
         bool need_release = false;
 
-        std::string name;
         mqabcMesh mesh;
     };
 
@@ -139,16 +138,7 @@ private:
         MQDocument mqdocument;
         MQMaterial mqmaterial;
 
-        std::string name;
-        std::string shader;
-        bool use_vertex_color = false;
-        bool double_sided = false;
-        float3 color = float3::one();
-        float diffuse = 1.0f;
-        float alpha = 1.0f;
-        float3 ambient = float3::zero();
-        float3 specular = float3::zero();
-        float3 emission = float3::zero();
+        mqabcMaterial material;
     };
 
     void ExtractMeshData(ObjectRecord& rec);
@@ -168,8 +158,6 @@ private:
     mu::nanosec m_start_time = 0;
     mu::nanosec m_last_flush = 0;
     mu::nanosec m_interval = 5000000000; // 5 sec
-    float m_scale_factor = 0.05f;
-    float m_time_scale = 1.0f;
 
     Abc::OArchive m_archive;
     std::shared_ptr<Abc::OObject> m_root_node;

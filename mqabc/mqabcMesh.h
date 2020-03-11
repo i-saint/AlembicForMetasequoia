@@ -16,7 +16,29 @@ public:
 
     void clear();
     void resize(int npoints, int nindices, int nfaces);
-    void transform(const float4x4 v);
     void merge(const mqabcMesh& other);
     void clearInvalidComponent();
+
+    void applyScale(float v);
+    void applyTransform(const float4x4 v);
+    void flipX();
+    void flipYZ();
+    void flipFaces();
+
+    int getMaxMaterialID() const;
+};
+
+class mqabcMaterial
+{
+public:
+    std::string name;
+    int shader = MQMATERIAL_SHADER_CLASSIC;
+    bool use_vertex_color = false;
+    bool double_sided = false;
+    float3 color = float3::one();
+    float diffuse = 1.0f;
+    float alpha = 1.0f;
+    float3 ambient_color = float3::zero();
+    float3 specular_color = float3::one();
+    float3 emission_color = float3::zero();
 };

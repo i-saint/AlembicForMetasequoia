@@ -182,28 +182,18 @@ void mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
 
         char buf[256];
         mtl->GetName(buf, sizeof(buf));
-        rec.name = buf;
 
-        switch (mtl->GetShader()) {
-#define Case(MQ, ABC) case MQ: rec.shader = ABC; break;
-        Case(MQMATERIAL_SHADER_CLASSIC, mqabcMtlShaderClassic)
-        Case(MQMATERIAL_SHADER_CONSTANT, mqabcMtlShaderConstant)
-        Case(MQMATERIAL_SHADER_LAMBERT, mqabcMtlShaderLambert)
-        Case(MQMATERIAL_SHADER_PHONG, mqabcMtlShaderPhong)
-        Case(MQMATERIAL_SHADER_BLINN, mqabcMtlShaderBlinn)
-        Case(MQMATERIAL_SHADER_HLSL, mqabcMtlShaderHLSL)
-#undef Case
-        }
-
-        rec.use_vertex_color = mtl->GetVertexColor() == MQMATERIAL_VERTEXCOLOR_DIFFUSE;
-        rec.double_sided = mtl->GetDoubleSided();
-
-        rec.color = (const float3&)mtl->GetColor();
-        rec.diffuse = mtl->GetDiffuse();
-        rec.alpha = mtl->GetAlpha();
-        rec.ambient = (const float3&)mtl->GetAmbientColor();
-        rec.specular = (const float3&)mtl->GetSpecularColor();
-        rec.emission = (const float3&)mtl->GetEmissionColor();
+        auto& dst = rec.material;
+        dst.name = buf;
+        dst.shader = mtl->GetShader();
+        dst.use_vertex_color = mtl->GetVertexColor() == MQMATERIAL_VERTEXCOLOR_DIFFUSE;
+        dst.double_sided = mtl->GetDoubleSided();
+        dst.color = (const float3&)mtl->GetColor();
+        dst.diffuse = mtl->GetDiffuse();
+        dst.alpha = mtl->GetAlpha();
+        dst.ambient_color = (const float3&)mtl->GetAmbientColor();
+        dst.specular_color = (const float3&)mtl->GetSpecularColor();
+        dst.emission_color = (const float3&)mtl->GetEmissionColor();
     }
 
     // extract mesh data
@@ -211,7 +201,7 @@ void mqabcRecorderPlugin::CaptureFrame(MQDocument doc)
         ExtractMeshData(m_obj_records[oi]);
     });
 
-    auto abctime = mu::NS2Sd(m_last_flush - m_start_time) * m_time_scale;
+    auto abctime = mu::NS2Sd(m_last_flush - m_start_time) * m_settings.time_scale;
     m_timeline.push_back(abctime);
 
     // flush abc async
@@ -248,11 +238,10 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)
     auto dst_counts = dst.counts.data();
     auto dst_indices = dst.indices.data();
 
-    rec.name = obj->GetName();
+    dst.name = obj->GetName();
 
     // points
     obj->GetVertexArray((MQPoint*)dst_points);
-    mu::Scale(dst_points, m_scale_factor, npoints);
 
     int fc = 0; // 'actual' face count
     for (int fi = 0; fi < nfaces; ++fi) {
@@ -294,6 +283,8 @@ void mqabcRecorderPlugin::ExtractMeshData(ObjectRecord& rec)
         dst.counts.resize(fc);
         dst.material_ids.resize(fc);
     }
+
+    dst.applyScale(m_settings.scale_factor);
 }
 
 void mqabcRecorderPlugin::FlushABC()
@@ -359,10 +350,24 @@ void mqabcRecorderPlugin::WriteMaterials()
     try {
         auto mtl_root = std::make_shared<Abc::OObject>(*m_root_node, "MQMaterials", 1);
         for (auto& rec : m_material_records) {
-            auto node = std::make_shared<AbcMaterial::OMaterial>(*mtl_root, rec.name, 1);
+            auto& src = rec.material;
+            auto node = std::make_shared<AbcMaterial::OMaterial>(*mtl_root, src.name, 1);
             auto schema = node->getSchema();
-            schema.setShader(mqabcMtlTarget, rec.shader, rec.name);
-            auto props = schema.getShaderParameters(mqabcMtlTarget, rec.shader);
+
+            std::string shader_str;
+            switch (src.shader) {
+#define Case(MQ, ABC) case MQ: shader_str = ABC; break;
+                Case(MQMATERIAL_SHADER_CLASSIC, mqabcMtlShaderClassic)
+                Case(MQMATERIAL_SHADER_CONSTANT, mqabcMtlShaderConstant)
+                Case(MQMATERIAL_SHADER_LAMBERT, mqabcMtlShaderLambert)
+                Case(MQMATERIAL_SHADER_PHONG, mqabcMtlShaderPhong)
+                Case(MQMATERIAL_SHADER_BLINN, mqabcMtlShaderBlinn)
+                Case(MQMATERIAL_SHADER_HLSL, mqabcMtlShaderHLSL)
+#undef Case
+            }
+
+            schema.setShader(mqabcMtlTarget, shader_str, src.name);
+            auto props = schema.getShaderParameters(mqabcMtlTarget, shader_str);
 
             auto vertex_color = Abc::OBoolProperty(props, mqabcMtlUseVertexColor, 1);
             auto double_sided = Abc::OBoolProperty(props, mqabcMtlDoubleSided, 1);
@@ -373,14 +378,14 @@ void mqabcRecorderPlugin::WriteMaterials()
             auto specular = Abc::OC3fProperty(props, mqabcMtlSpecularColor, 1);
             auto emission = Abc::OC3fProperty(props, mqabcMtlEmissionColor, 1);
 
-            vertex_color.set(rec.use_vertex_color);
-            double_sided.set(rec.double_sided);
-            color.set((abcC3&)rec.color);
-            diffuse.set(rec.diffuse);
-            alpha.set(rec.alpha);
-            ambient.set((abcC3&)rec.ambient);
-            specular.set((abcC3&)rec.specular);
-            emission.set((abcC3&)rec.emission);
+            vertex_color.set(src.use_vertex_color);
+            double_sided.set(src.double_sided);
+            color.set((abcC3&)src.color);
+            diffuse.set(src.diffuse);
+            alpha.set(src.alpha);
+            ambient.set((abcC3&)src.ambient_color);
+            specular.set((abcC3&)src.specular_color);
+            emission.set((abcC3&)src.emission_color);
         }
     }
     catch (...) {
