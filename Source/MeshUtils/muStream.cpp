@@ -140,4 +140,128 @@ CounterStream::CounterStream() : std::ostream(&m_buf) {}
 uint64_t CounterStream::size() const { return m_buf.m_size; }
 void CounterStream::reset() { m_buf.reset(); }
 
+
+
+PipeStreamBufBase::PipeStreamBufBase()
+{
+}
+
+PipeStreamBufBase::~PipeStreamBufBase()
+{
+    close();
+}
+
+#ifdef _WIN32
+#define popen _popen
+#define pclose _pclose
+#endif
+
+bool PipeStreamBufBase::open(const char* path, std::ios::openmode mode)
+{
+    close();
+
+    char option[16] = {};
+    {
+        char* p = option;
+        if (mode & std::ios::in)
+            *p++ = 'r';
+        if (mode & std::ios::out)
+            *p++ = 'w';
+    }
+    m_pipe = ::popen(path, option);
+    m_mode = mode;
+    return m_pipe != nullptr;
+}
+
+void PipeStreamBufBase::close()
+{
+    if (m_pipe) {
+        pclose(m_pipe);
+        m_pipe = nullptr;
+    }
+}
+
+std::streamsize PipeStreamBuf::xsputn(const char_type* s, std::streamsize n)
+{
+    return ::fwrite(s, 1, n, m_pipe);
+}
+
+std::streamsize PipeStreamBuf::xsgetn(char_type* s, std::streamsize n)
+{
+    return ::fread(s, 1, n, m_pipe);
+}
+
+
+PipeStreamBufBuffered::PipeStreamBufBuffered()
+{
+    m_buf.resize(default_bufsize);
+
+    auto* p = m_buf.data();
+    auto* e = p + m_buf.size();
+    this->setp(p, e);
+    this->setg(p, p, p);
+}
+
+int PipeStreamBufBuffered::overflow(int c)
+{
+    ::fwrite(m_buf.data(), 1, m_buf.size(), m_pipe);
+    this->pbump(0);
+    *this->pptr() = (char)c;
+    this->pbump(1);
+    return c;
+}
+
+int PipeStreamBufBuffered::underflow()
+{
+    auto n = ::fread(m_buf.data(), 1, m_buf.size(), m_pipe);
+    auto* p = m_buf.data();
+    this->setg(p, p, p + n);
+    this->gbump(0);
+
+    return n == 0 ? traits_type::eof() : *p;
+}
+
+int PipeStreamBufBuffered::sync()
+{
+    if (m_mode & std::ios::out) {
+        auto n = uint64_t(this->pptr() - this->pbase());
+        ::fwrite(m_buf.data(), 1, n, m_pipe);
+        this->pbump(0);
+    }
+    return 0;
+}
+
+
+PipeStream::PipeStream()
+    : std::iostream(nullptr)
+{
+}
+
+PipeStream::PipeStream(const char* path, std::ios::openmode mode)
+    : std::iostream(nullptr)
+{
+    open(path, mode);
+}
+
+bool PipeStream::open(const char* path, std::ios::openmode mode)
+{
+    close();
+    if (mode & std::ios::binary)
+        m_buf.reset(new PipeStreamBuf());
+    else
+        m_buf.reset(new PipeStreamBufBuffered());
+    rdbuf(m_buf.get());
+
+    auto ret = m_buf->open(path, mode);
+    if (!ret)
+        this->setstate(std::ios::failbit);
+    return ret;
+}
+
+void PipeStream::close()
+{
+    m_buf.reset();
+    this->clear();
+}
+
 } // namespace mu

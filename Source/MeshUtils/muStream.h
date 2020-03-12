@@ -4,6 +4,7 @@
 
 namespace mu {
 
+// memory stream
 class MemoryStreamBuf : public std::streambuf
 {
 friend class MemoryStream;
@@ -48,6 +49,7 @@ private:
 };
 
 
+// counter stream
 class CounterStreamBuf : public std::streambuf
 {
 public:
@@ -70,6 +72,55 @@ public:
 
 private:
     CounterStreamBuf m_buf;
+};
+
+
+// pipe stream
+class PipeStreamBufBase : public std::streambuf
+{
+public:
+    PipeStreamBufBase();
+    ~PipeStreamBufBase();
+
+    bool open(const char* path, std::ios::openmode mode);
+    void close();
+
+protected:
+    FILE* m_pipe = nullptr;
+    std::ios::openmode m_mode;
+};
+
+class PipeStreamBuf : public PipeStreamBufBase
+{
+public:
+    std::streamsize xsputn(const char_type* s, std::streamsize n) override;
+    std::streamsize xsgetn(char_type* s, std::streamsize n) override;
+};
+
+class PipeStreamBufBuffered : public PipeStreamBufBase
+{
+public:
+    static const size_t default_bufsize = 1024 * 128;
+
+    PipeStreamBufBuffered();
+    int overflow(int c) override;
+    int underflow() override;
+    int sync() override;
+
+private:
+    std::vector<char> m_buf;
+};
+
+class PipeStream : public std::iostream
+{
+public:
+    PipeStream();
+    PipeStream(const char* path, std::ios::openmode mode);
+    bool open(const char* path, std::ios::openmode mode);
+    void close();
+
+private:
+    std::unique_ptr<PipeStreamBufBase> m_buf;
 };
 
 } // namespace mu
