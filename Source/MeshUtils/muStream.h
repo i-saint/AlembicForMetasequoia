@@ -121,6 +121,7 @@ class PipeStream : public std::iostream
 public:
     PipeStream();
     PipeStream(const char* path, std::ios::openmode mode);
+    ~PipeStream();
     bool open(const char* path, std::ios::openmode mode);
     void close();
 

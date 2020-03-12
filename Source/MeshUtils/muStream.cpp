@@ -271,6 +271,11 @@ PipeStream::PipeStream(const char* path, std::ios::openmode mode)
     open(path, mode);
 }
 
+PipeStream::~PipeStream()
+{
+    close();
+}
+
 bool PipeStream::open(const char* path, std::ios::openmode mode)
 {
     close();
@@ -288,6 +293,7 @@ bool PipeStream::open(const char* path, std::ios::openmode mode)
 
 void PipeStream::close()
 {
+    flush();
     m_buf.reset();
     this->clear();
 }

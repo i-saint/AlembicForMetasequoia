@@ -36,3 +36,4 @@ add_subdirectory(MeshUtils)
 add_subdirectory_link(mqsdk470 mqsdk)
 add_subdirectory_link(mqabc470 mqabc)
 
+add_subdirectory(Test)

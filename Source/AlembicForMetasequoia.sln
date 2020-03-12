@@ -13,6 +13,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mqabcRecorder", "mqabcRecor
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mqabcPlayer", "mqabcPlayer.vcxproj", "{E4C06BCF-1349-494F-82BA-4CF54C84B0DF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{B648BDD2-745B-4FE7-BB07-09E49A8F07DC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Test\Test.vcxproj", "{11990C37-1C63-418F-9AB1-74076C470584}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -62,9 +66,18 @@ Global
 		{E4C06BCF-1349-494F-82BA-4CF54C84B0DF}.Release|x64.Build.0 = Release|x64
 		{E4C06BCF-1349-494F-82BA-4CF54C84B0DF}.Release|x86.ActiveCfg = Release|Win32
 		{E4C06BCF-1349-494F-82BA-4CF54C84B0DF}.Release|x86.Build.0 = Release|Win32
+		{11990C37-1C63-418F-9AB1-74076C470584}.Debug|x64.ActiveCfg = Debug|x64
+		{11990C37-1C63-418F-9AB1-74076C470584}.Debug|x64.Build.0 = Debug|x64
+		{11990C37-1C63-418F-9AB1-74076C470584}.Debug|x86.ActiveCfg = Debug|x64
+		{11990C37-1C63-418F-9AB1-74076C470584}.Release|x64.ActiveCfg = Release|x64
+		{11990C37-1C63-418F-9AB1-74076C470584}.Release|x64.Build.0 = Release|x64
+		{11990C37-1C63-418F-9AB1-74076C470584}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{11990C37-1C63-418F-9AB1-74076C470584} = {B648BDD2-745B-4FE7-BB07-09E49A8F07DC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AD5D498C-17E2-4E12-92D6-2AFE96005329}
