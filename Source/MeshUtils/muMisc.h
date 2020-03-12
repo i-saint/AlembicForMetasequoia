@@ -38,6 +38,7 @@ std::string GetFilename(const wchar_t *src);
 std::string GetFilename_NoExtension(const char *src);
 std::string GetFilename_NoExtension(const wchar_t *src);
 
+std::string GetCurrentModuleDirectory();
 
 void AddDLLSearchPath(const char *v);
 void* LoadModule(const char *path);

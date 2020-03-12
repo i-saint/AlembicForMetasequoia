@@ -7,6 +7,7 @@
 #else
     #include <unistd.h>
     #include <sys/mman.h>
+    #include <dlfcn.h>
 #endif
 
 namespace mu {
@@ -242,6 +243,25 @@ std::string GetFilename_NoExtension(const wchar_t *src)
         return ToMBS(src + last_separator);
 }
 
+
+std::string GetCurrentModuleDirectory()
+{
+    static std::string s_result;
+    if (s_result.empty()) {
+#ifdef _WIN32
+        HMODULE mod = 0;
+        char buf[1024];
+        ::GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCSTR)&GetCurrentModuleDirectory, &mod);
+        ::GetModuleFileNameA(mod, buf, sizeof(buf));
+        s_result = GetDirectory(buf);
+#else
+        Dl_info info;
+        dladdr((void*)&GetCurrentModuleDirectory, &info);
+        s_result = GetDirectory(info.dli_fname);
+#endif
+    }
+    return s_result;
+}
 
 void AddDLLSearchPath(const char *v)
 {

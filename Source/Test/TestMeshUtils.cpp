@@ -13,7 +13,7 @@ TestCase(Test_PipeStream)
 
     {
         // text mode
-        std::cout << "text mode:" << std::endl;
+        std::cout << "\ntext mode:\n";
         PipeStream pstream;
         if (pstream.open(cmd_ls, std::ios::in)) {
             std::string line;
@@ -23,7 +23,7 @@ TestCase(Test_PipeStream)
     }
     {
         // binary mode
-        std::cout << "binary mode:" << std::endl;
+        std::cout << "\nbinary mode:\n";
         PipeStream pstream;
         if (pstream.open(cmd_ls, std::ios::in | std::ios::binary)) {
             std::vector<char> buf;
@@ -33,4 +33,10 @@ TestCase(Test_PipeStream)
             std::cout.write(buf.data(), buf.size());
         }
     }
+}
+
+TestCase(Test_GetCurrentModuleDirectory)
+{
+    auto dir = GetCurrentModuleDirectory();
+    std::cout << dir << std::endl;
 }

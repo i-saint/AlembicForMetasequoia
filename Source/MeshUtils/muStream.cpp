@@ -162,7 +162,6 @@ bool PipeStreamBufBase::open(const char* path, std::ios::openmode mode)
 
     char option[16] = {};
     {
-        // note:
         // popen() works in one direction. "rw" option causes error.
         char* p = option;
         if (mode & std::ios::out)
@@ -170,10 +169,13 @@ bool PipeStreamBufBase::open(const char* path, std::ios::openmode mode)
         else
             *p++ = 'r';
 
+#ifdef _WIN32
+        // 'b' 't' option causes error on non-Windows
         if (mode & std::ios::binary)
             *p++ = 'b';
         else
             *p++ = 't';
+#endif
     }
     m_pipe = ::popen(path, option);
     m_mode = mode;
