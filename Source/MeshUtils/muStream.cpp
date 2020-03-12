@@ -162,11 +162,18 @@ bool PipeStreamBufBase::open(const char* path, std::ios::openmode mode)
 
     char option[16] = {};
     {
+        // note:
+        // popen() works in one direction. "rw" option causes error.
         char* p = option;
-        if (mode & std::ios::in)
-            *p++ = 'r';
         if (mode & std::ios::out)
             *p++ = 'w';
+        else
+            *p++ = 'r';
+
+        if (mode & std::ios::binary)
+            *p++ = 'b';
+        else
+            *p++ = 't';
     }
     m_pipe = ::popen(path, option);
     m_mode = mode;
@@ -176,7 +183,7 @@ bool PipeStreamBufBase::open(const char* path, std::ios::openmode mode)
 void PipeStreamBufBase::close()
 {
     if (m_pipe) {
-        pclose(m_pipe);
+        ::pclose(m_pipe);
         m_pipe = nullptr;
     }
 }
@@ -194,17 +201,38 @@ std::streamsize PipeStreamBuf::xsgetn(char_type* s, std::streamsize n)
 
 PipeStreamBufBuffered::PipeStreamBufBuffered()
 {
-    m_buf.resize(default_bufsize);
+}
 
-    auto* p = m_buf.data();
-    auto* e = p + m_buf.size();
-    this->setp(p, e);
-    this->setg(p, p, p);
+bool PipeStreamBufBuffered::open(const char* path, std::ios::openmode mode)
+{
+    bool ret = super::open(path, mode);
+    if (ret) {
+        if (mode & std::ios::out) {
+            m_pbuf.resize(default_bufsize);
+            auto* p = m_pbuf.data();
+            auto* e = p + m_pbuf.size();
+            this->setp(p, e);
+        }
+        else {
+            m_gbuf.resize(default_bufsize);
+            auto* p = m_gbuf.data();
+            this->setg(p, p, p);
+        }
+    }
+
+    return ret;
+}
+
+void PipeStreamBufBuffered::close()
+{
+    super::close();
+    m_gbuf.clear();
+    m_pbuf.clear();
 }
 
 int PipeStreamBufBuffered::overflow(int c)
 {
-    ::fwrite(m_buf.data(), 1, m_buf.size(), m_pipe);
+    ::fwrite(m_pbuf.data(), 1, m_pbuf.size(), m_pipe);
     this->pbump(0);
     *this->pptr() = (char)c;
     this->pbump(1);
@@ -213,8 +241,8 @@ int PipeStreamBufBuffered::overflow(int c)
 
 int PipeStreamBufBuffered::underflow()
 {
-    auto n = ::fread(m_buf.data(), 1, m_buf.size(), m_pipe);
-    auto* p = m_buf.data();
+    auto n = ::fread(m_gbuf.data(), 1, m_gbuf.size(), m_pipe);
+    auto* p = m_gbuf.data();
     this->setg(p, p, p + n);
     this->gbump(0);
 
@@ -225,7 +253,7 @@ int PipeStreamBufBuffered::sync()
 {
     if (m_mode & std::ios::out) {
         auto n = uint64_t(this->pptr() - this->pbase());
-        ::fwrite(m_buf.data(), 1, n, m_pipe);
+        ::fwrite(m_pbuf.data(), 1, n, m_pipe);
         this->pbump(0);
     }
     return 0;
@@ -250,7 +278,7 @@ bool PipeStream::open(const char* path, std::ios::openmode mode)
         m_buf.reset(new PipeStreamBuf());
     else
         m_buf.reset(new PipeStreamBufBuffered());
-    rdbuf(m_buf.get());
+    this->rdbuf(m_buf.get());
 
     auto ret = m_buf->open(path, mode);
     if (!ret)

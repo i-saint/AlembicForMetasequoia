@@ -82,8 +82,8 @@ public:
     PipeStreamBufBase();
     ~PipeStreamBufBase();
 
-    bool open(const char* path, std::ios::openmode mode);
-    void close();
+    virtual bool open(const char* path, std::ios::openmode mode);
+    virtual void close();
 
 protected:
     FILE* m_pipe = nullptr;
@@ -92,6 +92,7 @@ protected:
 
 class PipeStreamBuf : public PipeStreamBufBase
 {
+using super = PipeStreamBufBase;
 public:
     std::streamsize xsputn(const char_type* s, std::streamsize n) override;
     std::streamsize xsgetn(char_type* s, std::streamsize n) override;
@@ -99,16 +100,20 @@ public:
 
 class PipeStreamBufBuffered : public PipeStreamBufBase
 {
+using super = PipeStreamBufBase;
 public:
-    static const size_t default_bufsize = 1024 * 128;
+    static const size_t default_bufsize = 1024 * 64;
 
     PipeStreamBufBuffered();
+    bool open(const char* path, std::ios::openmode mode) override;
+    void close() override;
     int overflow(int c) override;
     int underflow() override;
     int sync() override;
 
 private:
-    std::vector<char> m_buf;
+    std::vector<char> m_gbuf;
+    std::vector<char> m_pbuf;
 };
 
 class PipeStream : public std::iostream
