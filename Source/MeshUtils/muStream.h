@@ -80,7 +80,7 @@ class PipeStreamBufBase : public std::streambuf
 {
 public:
     PipeStreamBufBase();
-    ~PipeStreamBufBase();
+    ~PipeStreamBufBase() override;
 
     virtual bool open(const char* path, std::ios::openmode mode);
     virtual void close();

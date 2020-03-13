@@ -1,7 +1,7 @@
 #pragma once
 
-#define mqabcVersion        0.8.0
-#define mqabcVersionString  "0.8.0"
+#define mqabcVersion        0.9.0
+#define mqabcVersionString  "0.9.0"
 #define mqabcCopyRight      "Copyright(C) 2020, i-saint"
 
 #define mqabcPluginProduct      0x493ADF11
