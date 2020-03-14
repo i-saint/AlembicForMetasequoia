@@ -31,8 +31,8 @@ exit /B 0
     set DIST_DIR32="_dist\mqabc_Windows_32bit"
     mkdir "%DIST_DIR64%"
     mkdir "%DIST_DIR32%"
-    copy _out\x64_Release\mqabcPlayer%MQ_VERSION%\mqabcPlayer.dll "%DIST_DIR64%"
-    copy _out\x64_Release\mqabcRecorder%MQ_VERSION%\mqabcRecorder.dll "%DIST_DIR64%"
-    copy _out\Win32_Release\mqabcPlayer%MQ_VERSION%\mqabcPlayer.dll "%DIST_DIR32%"
-    copy _out\Win32_Release\mqabcRecorder%MQ_VERSION%\mqabcRecorder.dll "%DIST_DIR32%"
+    copy _out\x64_Release\%MQ_VERSION%\mqabcPlayer.dll "%DIST_DIR64%"
+    copy _out\x64_Release\%MQ_VERSION%\mqabcRecorder.dll "%DIST_DIR64%"
+    copy _out\Win32_Release\%MQ_VERSION%\mqabcPlayer.dll "%DIST_DIR32%"
+    copy _out\Win32_Release\%MQ_VERSION%\mqabcRecorder.dll "%DIST_DIR32%"
     exit /B 0
